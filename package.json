@@ -3,6 +3,6 @@
   "private":true,
   "version":"1.0.0",
   "scripts":{"build":"npm --prefix client install && npm --prefix client run build","start":"node server.js","dev":"concurrently \"node server.js\" \"npm --prefix client run dev\""},
-  "dependencies":{"cors":"^2.8.5","dotenv":"^16.6.1","express":"^5.1.0","jsonwebtoken":"^9.0.2","mongoose":"^8.18.0","razorpay":"^2.9.6","resend":"^6.1.0"},
+  "dependencies":{"bcryptjs":"^3.0.2","cors":"^2.8.5","dotenv":"^16.6.1","express":"^5.1.0","helmet":"^8.1.0","jsonwebtoken":"^9.0.2","mongoose":"^8.18.0","razorpay":"^2.9.6","resend":"^6.1.0"},
   "devDependencies":{"concurrently":"^9.2.1"}
 }
