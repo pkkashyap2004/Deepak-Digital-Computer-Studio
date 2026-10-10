@@ -161,6 +161,7 @@ function App() {
 
   async function pay() {
     if (paying || cart.length === 0) return;
+    if (cart.some(item => item.service)) { setMessage("Government service charges must be confirmed first. Open the service details and submit an enquiry before checkout."); return; }
     setPaying(true);
     try {
       const shipping = { name: "Guest Customer", email: "customer@example.com", phone: "", address: "India" };
