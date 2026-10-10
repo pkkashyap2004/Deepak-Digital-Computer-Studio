@@ -47,7 +47,7 @@ function App() {
   const [checkout, setCheckout] = useState(false);
   const [message, setMessage] = useState("");
   const [productsError, setProductsError] = useState(false);
-  const [paying, setPaying] = useState(false);
+  const [paying, setPaying] = useState(false);\n  const [accountOpen, setAccountOpen] = useState(false);\n  const [authMode, setAuthMode] = useState("login");\n  const [authForm, setAuthForm] = useState({name:"",email:"",password:""});\n  const [account, setAccount] = useState(() => { try { return JSON.parse(window.localStorage.getItem("ddcs_user") || "null"); } catch { return null; } });\n  const [accountToken, setAccountToken] = useState(() => { try { return window.localStorage.getItem("ddcs_token") || ""; } catch { return ""; } });\n  const [accountBusy, setAccountBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -87,6 +87,30 @@ function App() {
       ? current.map(i => i._id === p._id ? { ...i, qty: (Number(i.qty) || 0) + 1 } : i)
       : [...current, { ...p, qty: 1 }];
   });
+
+  async function submitAuth(event) {
+    event.preventDefault();
+    setAccountBusy(true);
+    try {
+      const response = await fetch(API + (authMode === "register" ? "/auth/register" : "/auth/login"), {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(authForm)
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Sign-in failed");
+      window.localStorage.setItem("ddcs_token", data.token);
+      window.localStorage.setItem("ddcs_user", JSON.stringify(data.user));
+      setAccountToken(data.token);
+      setAccount(data.user);
+      setMessage(authMode === "register" ? "Account created successfully." : "Signed in successfully.");
+      setAuthForm({name:"",email:"",password:""});
+    } catch (error) {
+      setMessage(error.message || "Unable to sign in.");
+    } finally { setAccountBusy(false); }
+  }
+  function signOut() {
+    try { window.localStorage.removeItem("ddcs_token"); window.localStorage.removeItem("ddcs_user"); } catch {}
+    setAccountToken(""); setAccount(null); setMessage("You have signed out.");
+  }
   const total = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 0), 0);
   const filteredProducts = products.filter(p =>
     String(p.name || "").toLowerCase().includes(q.toLowerCase()) ||
@@ -136,7 +160,7 @@ function App() {
         <button className="icon" onClick={() => setMenu(!menu)} aria-label="Toggle menu">{menu ? <X /> : <Menu />}</button>
         <div className={"links " + (menu ? "open" : "")}><a href="#home">Home</a><a href="#products">Products</a><a href="#products">Deals</a><a href="#support">Support</a></div>
         <div className="search"><Search size={18} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Search products..." aria-label="Search products" /></div>
-        <button className="cart" onClick={() => setCheckout(true)} aria-label="Open cart"><ShoppingCart /><span>{cart.reduce((sum, i) => sum + (Number(i.qty) || 0), 0)}</span></button>
+        <button className="icon accountButton" onClick={() => setAccountOpen(true)} aria-label="Open account">{account ? "My account" : "Sign in"}</button><button className="cart" onClick={() => setCheckout(true)} aria-label="Open cart"><ShoppingCart /><span>{cart.reduce((sum, i) => sum + (Number(i.qty) || 0), 0)}</span></button>
       </nav>
     </header>
     <section className="hero" id="home">
@@ -154,7 +178,21 @@ function App() {
       </article>)}</div>
     </main>
     <footer id="support"><div><b className="logo">DDCS<span>.</span></b><p>Deepak Digital Computer Studio — modern commerce for local technology retail.</p></div><div><b>Integrations</b><p>MongoDB • Express • React • Node • Razorpay • Resend • Vercel</p></div></footer>
-    {message && <div className="toast" role="status">{message}<button onClick={() => setMessage("")} aria-label="Dismiss message">×</button></div>}
+
+    {accountOpen && <div className="overlay"><div className="modal accountModal" role="dialog" aria-modal="true" aria-label="Customer account">
+      <button className="close" onClick={() => setAccountOpen(false)} aria-label="Close account">×</button>
+      {account ? <><h2>Welcome, {account.name}</h2><p>{account.email}</p><p>Your account is ready. Profile and address management will be expanded in the next iteration.</p><button onClick={signOut}>Sign out</button></> : <>
+        <h2>{authMode === "register" ? "Create account" : "Sign in"}</h2>
+        <form onSubmit={submitAuth} className="accountForm">
+          {authMode === "register" && <input required maxLength="100" value={authForm.name} onChange={e => setAuthForm({...authForm,name:e.target.value})} placeholder="Full name" aria-label="Full name" />}
+          <input required type="email" autoComplete="email" value={authForm.email} onChange={e => setAuthForm({...authForm,email:e.target.value})} placeholder="Email address" aria-label="Email address" />
+          <input required minLength="6" type="password" autoComplete={authMode === "register" ? "new-password" : "current-password"} value={authForm.password} onChange={e => setAuthForm({...authForm,password:e.target.value})} placeholder="Password (at least 6 characters)" aria-label="Password" />
+          <button className="pay" type="submit" disabled={accountBusy}>{accountBusy ? "Please wait…" : authMode === "register" ? "Create account" : "Sign in"}</button>
+        </form>
+        <p>{authMode === "register" ? "Already registered?" : "New to DDCS?"} <button onClick={() => setAuthMode(authMode === "register" ? "login" : "register")}>{authMode === "register" ? "Sign in" : "Create account"}</button></p>
+      </>}
+    </div></div>}
+\n    {message && <div className="toast" role="status">{message}<button onClick={() => setMessage("")} aria-label="Dismiss message">×</button></div>}
     {checkout && <div className="overlay"><div className="modal" role="dialog" aria-modal="true" aria-label="Your cart">
       <button className="close" onClick={() => setCheckout(false)} aria-label="Close cart">×</button><h2>Your cart</h2>
       {cart.length === 0 ? <p>Your cart is empty.</p> : <>{cart.map((i, index) => <div className="line" key={i._id || index}><span>{i.name} × {i.qty}</span><b>{money((Number(i.price) || 0) * (Number(i.qty) || 0))}</b></div>)}<hr /><div className="line"><b>Total</b><b>{money(total)}</b></div><button className="pay" onClick={pay} disabled={paying}>{paying ? "Processing…" : "Place order & pay"}</button></>}
