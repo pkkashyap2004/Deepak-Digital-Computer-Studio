@@ -99,18 +99,27 @@ function App() {
     setAccountBusy(true);
     try {
       const response = await fetch(API + (authMode === "register" ? "/auth/register" : "/auth/login"), {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(authForm)
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ name: authForm.name.trim(), email: authForm.email.trim().toLowerCase(), password: authForm.password })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Sign-in failed");
-      window.localStorage.setItem("ddcs_token", data.token);
-      window.localStorage.setItem("ddcs_user", JSON.stringify(data.user));
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || (response.status === 404 ? "Authentication API route not found. The deployment may still be updating." : "Sign-in failed (HTTP " + response.status + ")."));
+      if (!data.token || !data.user) throw new Error("The server response was incomplete. Please try again.");
+      try {
+        window.localStorage.setItem("ddcs_token", data.token);
+        window.localStorage.setItem("ddcs_user", JSON.stringify(data.user));
+      } catch (storageError) {
+        console.warn("Session storage unavailable:", storageError);
+      }
       setAccountToken(data.token);
       setAccount(data.user);
+      setAccountOpen(false);
       setMessage(authMode === "register" ? "Account created successfully." : "Signed in successfully.");
       setAuthForm({name:"",email:"",password:""});
     } catch (error) {
-      setMessage(error.message || "Unable to sign in.");
+      console.error("DDCS authentication error:", error);
+      setMessage(error.message || "Unable to sign in. Please check your connection and try again.");
     } finally { setAccountBusy(false); }
   }
   function signOut() {
@@ -205,7 +214,7 @@ function App() {
         <form onSubmit={submitAuth} className="accountForm">
           {authMode === "register" && <input required maxLength="100" value={authForm.name} onChange={e => setAuthForm({...authForm,name:e.target.value})} placeholder="Full name" aria-label="Full name" />}
           <input required type="email" autoComplete="email" value={authForm.email} onChange={e => setAuthForm({...authForm,email:e.target.value})} placeholder="Email address" aria-label="Email address" />
-          <input required minLength="6" type="password" autoComplete={authMode === "register" ? "new-password" : "current-password"} value={authForm.password} onChange={e => setAuthForm({...authForm,password:e.target.value})} placeholder="Password (at least 6 characters)" aria-label="Password" />
+          <input required minLength={authMode === "register" ? 8 : 1} maxLength="128" type="password" autoComplete={authMode === "register" ? "new-password" : "current-password"} value={authForm.password} onChange={e => setAuthForm({...authForm,password:e.target.value})} placeholder="Password (at least 6 characters)" aria-label="Password" />
           <button className="pay" type="submit" disabled={accountBusy}>{accountBusy ? "Please wait…" : authMode === "register" ? "Create account" : "Sign in"}</button>
         </form>
         <p>{authMode === "register" ? "Already registered?" : "New to DDCS?"} <button onClick={() => setAuthMode(authMode === "register" ? "login" : "register")}>{authMode === "register" ? "Sign in" : "Create account"}</button></p>
