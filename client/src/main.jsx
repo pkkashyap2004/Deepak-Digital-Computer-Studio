@@ -1,7 +1,7 @@
 import React, { Component, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { ShoppingCart, Search, Menu, X, ShieldCheck, Truck, CreditCard, MessageCircle } from "lucide-react";
+import { ShoppingCart, Search, Menu, X, ShieldCheck, Truck, CreditCard, MessageCircle, Eye, Star, ArrowLeft, FileText, Users } from "lucide-react";
 import "./styles.css";
 
 const API = "/api";
@@ -54,6 +54,9 @@ function App() {
   const [account, setAccount] = useState(() => { try { return JSON.parse(window.localStorage.getItem("ddcs_user") || "null"); } catch { return null; } });
   const [accountToken, setAccountToken] = useState(() => { try { return window.localStorage.getItem("ddcs_token") || ""; } catch { return ""; } });
   const [accountBusy, setAccountBusy] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [inquiryForm, setInquiryForm] = useState({name:"",phone:"",note:""});
+  const [inquiryBusy, setInquiryBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -132,6 +135,30 @@ function App() {
     String(p.category || "").toLowerCase().includes(q.toLowerCase())
   );
 
+  function openProduct(p) {
+    setSelectedProduct(p);
+    window.history.replaceState(null, "", "#service-" + encodeURIComponent(p.slug || p._id || "details"));
+    fetch(API + "/products/" + encodeURIComponent(p.slug || p._id) + "/view", {method:"POST"})
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if(data) setSelectedProduct(current => current ? {...current,views:data.views}:current); })
+      .catch(error => console.warn("View count unavailable:",error));
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+  async function submitInquiry(event) {
+    event.preventDefault();
+    if(!selectedProduct)return;
+    setInquiryBusy(true);
+    try {
+      const response=await fetch(API+"/products/"+encodeURIComponent(selectedProduct.slug||selectedProduct._id)+"/inquiry",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(inquiryForm)});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.message||"Could not submit enquiry.");
+      setSelectedProduct(current=>current?{...current,inquiries:data.inquiries}:current);
+      setInquiryForm({name:"",phone:"",note:""});
+      setMessage(data.message||"Enquiry received.");
+    } catch(error){setMessage(error.message||"Could not submit enquiry.");}
+    finally{setInquiryBusy(false);}
+  }
+
   async function pay() {
     if (paying || cart.length === 0) return;
     setPaying(true);
@@ -196,15 +223,39 @@ function App() {
       <div className="heroCard"><ShieldCheck size={42} /><h3>Trusted checkout</h3><p>Secure payments, order tracking and automated confirmations.</p></div>
     </section>
     <div className="features"><div><Truck />Fast delivery</div><div><CreditCard />Secure payments</div><div><MessageCircle />WhatsApp-ready support</div></div>
-    <main id="products">
-      <div className="sectionHead"><div><p className="eyebrow">SHOP</p><h2>Featured products</h2></div><span>{products.length} products</span></div>
-      {productsError && <p role="status">We couldn’t load products right now. You can still browse the store; please try refreshing in a moment.</p>}
-      {!productsError && products.length === 0 && <p>Products will appear here when the catalog is available.</p>}
-      <div className="grid">{filteredProducts.map(p => <article className="card" key={p._id || p.name}>
-        <img src={p.image || ""} alt={p.name || "Product"} loading="lazy" onError={e => { e.currentTarget.style.visibility = "hidden"; }} />
-        <small>{p.category || "Technology"}</small><h3>{p.name || "Product"}</h3><p className="desc">{p.description || ""}</p><div className="price">{money(p.price)}</div><button onClick={() => add(p)}>Add to cart</button>
-      </article>)}</div>
-    </main>
+    {selectedProduct ? <main className="serviceDetail" id="service-detail">
+      <button className="backToProducts" onClick={()=>{setSelectedProduct(null);window.history.replaceState(null,"",window.location.pathname);}}><ArrowLeft size={18}/> Back to services</button>
+      <div className="detailLayout">
+        <div className="detailImageWrap"><img className="detailImage" src={selectedProduct.image||""} alt={selectedProduct.name} onError={e=>{e.currentTarget.style.visibility="hidden";}}/><span className="detailCategory">{selectedProduct.category||"Digital Service"}</span></div>
+        <div className="detailInfo"><span className="eyebrow">DEEPAK DIGITAL COMPUTER STUDIO</span><h1>{selectedProduct.name}</h1>
+          <div className="ratingLine"><span className="stars">★★★★★</span><b>{Number(selectedProduct.rating||4.8).toFixed(1)}/5</b><span>({Number(selectedProduct.reviewCount||0)} reviews)</span></div>
+          <div className="detailPrice">{money(selectedProduct.price)} {Number(selectedProduct.discountPercent)>0&&<><span className="oldPrice">{money(Number(selectedProduct.price)/(1-Number(selectedProduct.discountPercent)/100))}</span><span className="discountBadge">{selectedProduct.discountPercent}% OFF</span></>}</div>
+          <p className="detailDescription">{selectedProduct.description||"Professional assistance from Deepak Digital Computer Studio. Contact our team to confirm eligibility, required documents, service charges and expected timelines."}</p>
+          <div className="detailStats"><span><Eye size={17}/> {Number(selectedProduct.views||0).toLocaleString("en-IN")} views</span><span><Users size={17}/> {Number(selectedProduct.inquiries||0).toLocaleString("en-IN")} enquiries</span></div>
+          <div className="offerPanel"><b>Available offers</b>{(selectedProduct.offers?.length?selectedProduct.offers:["Get assistance with application steps and document checklist","Contact our service desk to confirm current service charges","Support with next steps and application guidance"]).map((offer,i)=><p key={i}>✓ {offer}</p>)}</div>
+          <div className="detailActions"><button onClick={()=>{add(selectedProduct);setMessage("Added to cart: "+selectedProduct.name)}}><ShoppingCart size={18}/> Add to cart</button><button className="secondaryAction" onClick={()=>document.getElementById("service-enquiry")?.scrollIntoView({behavior:"smooth",block:"center"})}><FileText size={18}/> Online form / Enquiry</button></div>
+        </div>
+      </div>
+      <section className="detailBelow"><div><h2>Service details and information</h2><p>{selectedProduct.description||"Our team can help you understand the process and prepare the information needed before submitting a request."}</p><h3>How it works</h3><ol><li>Review the service information and document checklist.</li><li>Submit the enquiry form with your contact details.</li><li>Our team contacts you to confirm charges and next steps.</li></ol><h3>Before you apply</h3><p>Requirements and official approval timelines can vary. Confirm current requirements with the relevant government portal or authorised service centre. An enquiry does not guarantee issuance of a government certificate.</p></div>
+      <form id="service-enquiry" className="enquiryCard" onSubmit={submitInquiry}><h2>Request this service</h2><p>Leave your details for a follow-up.</p><label>Your name<input required minLength="2" maxLength="100" value={inquiryForm.name} onChange={e=>setInquiryForm({...inquiryForm,name:e.target.value})} placeholder="Full name"/></label><label>Mobile / contact number<input required maxLength="25" inputMode="tel" value={inquiryForm.phone} onChange={e=>setInquiryForm({...inquiryForm,phone:e.target.value})} placeholder="Contact number"/></label><label>What do you need?<textarea maxLength="1000" value={inquiryForm.note} onChange={e=>setInquiryForm({...inquiryForm,note:e.target.value})} placeholder="Optional questions"/></label><button className="pay" disabled={inquiryBusy}>{inquiryBusy?"Submitting…":"Submit enquiry"}</button></form></section>
+    </main> : <main id="products">
+      <div className="sectionHead"><div><p className="eyebrow">SHOP & DIGITAL SERVICES</p><h2>Featured products and online services</h2></div><span>{filteredProducts.length} items</span></div>
+      {productsError&&<p role="status">We couldn’t load the catalogue right now. Please try again shortly.</p>}
+      {!productsError&&products.length===0&&<p>Products and services will appear here when the catalog is available.</p>}
+      <div className="grid">{filteredProducts.map(p=>{
+        const discount=Number(p.discountPercent)||(Number(p.compareAt)>Number(p.price)&&Number(p.compareAt)>0?Math.round((1-Number(p.price)/Number(p.compareAt))*100):0);
+        const oldPrice=Number(p.compareAt)>Number(p.price)?Number(p.compareAt):(discount>0?Number(p.price)/(1-discount/100):0);
+        return <article className="card serviceCard" key={p._id||p.name}>
+          <button className="productImageButton" onClick={()=>openProduct(p)} aria-label={"View "+p.name}><img src={p.image||""} alt={p.name||"Service"} loading="lazy" onError={e=>{e.currentTarget.style.visibility="hidden";}}/><span className="imageLabel">View details ↗</span>{discount>0&&<span className="cardDiscount">{discount}% OFF</span>}</button>
+          <small>{p.category||"Digital Service"}</small><h3>{p.name||"Product"}</h3><p className="desc">{p.description||"Learn about this service, required documents and how to apply."}</p>
+          <div className="ratingLine"><span className="stars">★★★★★</span><b>{Number(p.rating||4.8).toFixed(1)}</b><span>({Number(p.reviewCount||0)} reviews)</span></div>
+          <div className="cardPrice">{money(p.price)} {oldPrice>Number(p.price)&&<span className="oldPrice">{money(oldPrice)}</span>}</div>
+          <div className="cardStats"><span><Eye size={15}/> {Number(p.views||0).toLocaleString("en-IN")} views</span><span><Users size={15}/> {Number(p.inquiries||0).toLocaleString("en-IN")} enquiries</span></div>
+          <div className="offerMini"><b>Offers</b><span>{p.offers?.[0]||"Ask us about current offers and service charges."}</span></div>
+          <div className="cardActions"><button onClick={()=>{add(p);setMessage("Added to cart: "+p.name)}}><ShoppingCart size={16}/> Add to cart</button><button className="secondaryAction" onClick={()=>openProduct(p)}>Online form / Details</button></div>
+        </article>;
+      })}</div>
+    </main>}
     <footer id="support"><div><a className="brandMark footerBrand" href="#home" aria-label="Deepak Digital Computer Studio home"><span className="brandIcon"><span className="pixelGrid"><i></i><i></i><i></i><i></i><i></i><i></i></span><b>D</b><em></em></span><span className="brandWords"><strong><span>Deepak</span> <i>Digital</i></strong><small>Computer Studio</small></span></a><p>Deepak Digital Computer Studio — modern commerce for local technology retail.</p></div><div><b>Integrations</b><p>MongoDB • Express • React • Node • Razorpay • Resend • Vercel</p></div></footer>
 
     {accountOpen && <div className="overlay"><div className="modal accountModal" role="dialog" aria-modal="true" aria-label="Customer account">
