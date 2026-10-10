@@ -47,7 +47,13 @@ function App() {
   const [checkout, setCheckout] = useState(false);
   const [message, setMessage] = useState("");
   const [productsError, setProductsError] = useState(false);
-  const [paying, setPaying] = useState(false);\n  const [accountOpen, setAccountOpen] = useState(false);\n  const [authMode, setAuthMode] = useState("login");\n  const [authForm, setAuthForm] = useState({name:"",email:"",password:""});\n  const [account, setAccount] = useState(() => { try { return JSON.parse(window.localStorage.getItem("ddcs_user") || "null"); } catch { return null; } });\n  const [accountToken, setAccountToken] = useState(() => { try { return window.localStorage.getItem("ddcs_token") || ""; } catch { return ""; } });\n  const [accountBusy, setAccountBusy] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [authMode, setAuthMode] = useState("login");
+  const [authForm, setAuthForm] = useState({name:"",email:"",password:""});
+  const [account, setAccount] = useState(() => { try { return JSON.parse(window.localStorage.getItem("ddcs_user") || "null"); } catch { return null; } });
+  const [accountToken, setAccountToken] = useState(() => { try { return window.localStorage.getItem("ddcs_token") || ""; } catch { return ""; } });
+  const [accountBusy, setAccountBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -192,7 +198,8 @@ function App() {
         <p>{authMode === "register" ? "Already registered?" : "New to DDCS?"} <button onClick={() => setAuthMode(authMode === "register" ? "login" : "register")}>{authMode === "register" ? "Sign in" : "Create account"}</button></p>
       </>}
     </div></div>}
-\n    {message && <div className="toast" role="status">{message}<button onClick={() => setMessage("")} aria-label="Dismiss message">×</button></div>}
+
+    {message && <div className="toast" role="status">{message}<button onClick={() => setMessage("")} aria-label="Dismiss message">×</button></div>}
     {checkout && <div className="overlay"><div className="modal" role="dialog" aria-modal="true" aria-label="Your cart">
       <button className="close" onClick={() => setCheckout(false)} aria-label="Close cart">×</button><h2>Your cart</h2>
       {cart.length === 0 ? <p>Your cart is empty.</p> : <>{cart.map((i, index) => <div className="line" key={i._id || index}><span>{i.name} × {i.qty}</span><b>{money((Number(i.price) || 0) * (Number(i.qty) || 0))}</b></div>)}<hr /><div className="line"><b>Total</b><b>{money(total)}</b></div><button className="pay" onClick={pay} disabled={paying}>{paying ? "Processing…" : "Place order & pay"}</button></>}
