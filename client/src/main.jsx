@@ -1,12 +1,167 @@
-import React,{useEffect,useState} from "react";import{createRoot}from"react-dom/client";import{BrowserRouter,useNavigate}from"react-router-dom";import{ShoppingCart,Search,Menu,X,ShieldCheck,Truck,CreditCard,MessageCircle}from"lucide-react";import"./styles.css";
-const API="/api"; const money=n=>"₹"+Number(n||0).toLocaleString("en-IN");
-function App(){const[products,setProducts]=useState([]),[cart,setCart]=useState(JSON.parse(localStorage.getItem("cart")||"[]")),[q,setQ]=useState(""),[menu,setMenu]=useState(false),[checkout,setCheckout]=useState(false),[message,setMessage]=useState("");
-useEffect(()=>{fetch(API+"/products").then(r=>r.json()).then(setProducts)},[]);useEffect(()=>localStorage.setItem("cart",JSON.stringify(cart)),[cart]);
-const add=p=>setCart(c=>{const x=c.find(i=>i._id===p._id);return x?c.map(i=>i._id===p._id?{...i,qty:i.qty+1}:i):[...c,{...p,qty:1}]});const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
-async function pay(){const shipping={name:"Guest Customer",email:"customer@example.com",phone:"",address:"India"};const po=await fetch(API+"/payments/create-order",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({amount:total})}).then(r=>r.json());const order=await fetch(API+"/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({items:cart.map(i=>({productId:i._id,name:i.name,price:i.price,qty:i.qty})),total,paymentMethod:po.demo?"demo":"razorpay",shipping})}).then(r=>r.json());setCart([]);setCheckout(false);setMessage("Order placed successfully: "+order._id)}
-return <><header><div className="top">🚀 Free delivery on orders over ₹999 • Secure checkout</div><nav><b className="logo">DDCS<span>.</span></b><button className="icon" onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button><div className={"links "+(menu?"open":"")}><a>Home</a><a>Products</a><a>Deals</a><a>Support</a></div><div className="search"><Search size={18}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search products..."/></div><button className="cart" onClick={()=>setCheckout(true)}><ShoppingCart/> <span>{cart.reduce((s,i)=>s+i.qty,0)}</span></button></nav></header>
-<section className="hero"><div><p className="eyebrow">DEEPAK DIGITAL COMPUTER STUDIO</p><h1>Tech that works as hard as you do.</h1><p>Computers, accessories and smart tech — curated for work, gaming and everyday productivity.</p><button onClick={()=>document.getElementById("products").scrollIntoView({behavior:"smooth"})}>Shop now →</button></div><div className="heroCard"><ShieldCheck size={42}/><h3>Trusted checkout</h3><p>Secure payments, order tracking and automated confirmations.</p></div></section>
-<div className="features"><div><Truck/>Fast delivery</div><div><CreditCard/>Secure payments</div><div><MessageCircle/>WhatsApp-ready support</div></div>
-<main id="products"><div className="sectionHead"><div><p className="eyebrow">SHOP</p><h2>Featured products</h2></div><span>{products.length} products</span></div><div className="grid">{products.filter(p=>!q||p.name.toLowerCase().includes(q.toLowerCase())||p.category?.toLowerCase().includes(q.toLowerCase())).map(p=><article className="card" key={p._id}><img src={p.image}/><small>{p.category}</small><h3>{p.name}</h3><p className="desc">{p.description}</p><div className="price">{money(p.price)}</div><button onClick={()=>add(p)}>Add to cart</button></article>)}</div></main>
-<footer><div><b className="logo">DDCS<span>.</span></b><p>Deepak Digital Computer Studio — modern commerce for local technology retail.</p></div><div><b>Integrations</b><p>MongoDB • Express • React • Node • Razorpay • Resend • Vercel</p></div></footer>
-{message&&<div className="toast">{message}</div>}{checkout&&<div className="overlay"><div className="modal"><button className="close" onClick={()=>setCheckout(false)}>×</button><h2>Your cart</h2>{cart.length===0?<p>Your cart is empty.</p>:<>{cart.map(i=><div className="line" key={i._id}><span>{i.name} × {i.qty}</span><b>{money(i.price*i.qty)}</b></div>)}<hr/><div className="line"><b>Total</b><b>{money(total)}</b></div><button className="pay" onClick={pay}>Place order & pay</button></>}</div></div>}</>};createRoot(document.getElementById("root")).render(<BrowserRouter><App/></BrowserRouter>);
+import React, { Component, useEffect, useState } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import { ShoppingCart, Search, Menu, X, ShieldCheck, Truck, CreditCard, MessageCircle } from "lucide-react";
+import "./styles.css";
+
+const API = "/api";
+const money = n => "₹" + Number(n || 0).toLocaleString("en-IN");
+
+function readCart() {
+  try {
+    const value = JSON.parse(window.localStorage.getItem("cart") || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { failed: false };
+  }
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(error) {
+    console.error("DDCS UI error:", error);
+  }
+  render() {
+    if (this.state.failed) {
+      return <main className="errorPage">
+        <h1>We’re fixing a display issue</h1>
+        <p>Please reload the store. Your saved cart is kept where possible.</p>
+        <button onClick={() => window.location.reload()}>Reload store</button>
+      </main>;
+    }
+    return this.props.children;
+  }
+}
+
+function App() {
+  const [products, setProducts] = useState([]);
+  const [cart, setCart] = useState(readCart);
+  const [q, setQ] = useState("");
+  const [menu, setMenu] = useState(false);
+  const [checkout, setCheckout] = useState(false);
+  const [message, setMessage] = useState("");
+  const [productsError, setProductsError] = useState(false);
+  const [paying, setPaying] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function loadProducts() {
+      try {
+        const response = await fetch(API + "/products");
+        if (!response.ok) throw new Error("Products API returned " + response.status);
+        const data = await response.json();
+        const list = Array.isArray(data) ? data : (Array.isArray(data.products) ? data.products : []);
+        if (active) {
+          setProducts(list);
+          setProductsError(false);
+        }
+      } catch (error) {
+        console.error("Could not load products:", error);
+        if (active) {
+          setProducts([]);
+          setProductsError(true);
+        }
+      }
+    }
+    loadProducts();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("cart", JSON.stringify(cart));
+    } catch (error) {
+      console.warn("Cart could not be saved locally:", error);
+    }
+  }, [cart]);
+
+  const add = p => setCart(current => {
+    const existing = current.find(i => i._id === p._id);
+    return existing
+      ? current.map(i => i._id === p._id ? { ...i, qty: (Number(i.qty) || 0) + 1 } : i)
+      : [...current, { ...p, qty: 1 }];
+  });
+  const total = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 0), 0);
+  const filteredProducts = products.filter(p =>
+    String(p.name || "").toLowerCase().includes(q.toLowerCase()) ||
+    String(p.category || "").toLowerCase().includes(q.toLowerCase())
+  );
+
+  async function pay() {
+    if (paying || cart.length === 0) return;
+    setPaying(true);
+    try {
+      const shipping = { name: "Guest Customer", email: "customer@example.com", phone: "", address: "India" };
+      const paymentResponse = await fetch(API + "/payments/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: total })
+      });
+      if (!paymentResponse.ok) throw new Error("Payment setup failed");
+      const payment = await paymentResponse.json();
+      const orderResponse = await fetch(API + "/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: cart.map(i => ({ productId: i._id, name: i.name, price: i.price, qty: i.qty })),
+          total,
+          paymentMethod: payment.demo ? "demo" : "razorpay",
+          shipping
+        })
+      });
+      const order = await orderResponse.json();
+      if (!orderResponse.ok) throw new Error(order.message || "Order could not be placed");
+      setCart([]);
+      setCheckout(false);
+      setMessage("Order placed successfully: " + (order._id || order.orderId || ""));
+    } catch (error) {
+      console.error("Checkout failed:", error);
+      setMessage(error.message || "Checkout failed. Please try again.");
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  return <>
+    <header>
+      <div className="top">🚀 Free delivery on orders over ₹999 • Secure checkout</div>
+      <nav>
+        <b className="logo">DDCS<span>.</span></b>
+        <button className="icon" onClick={() => setMenu(!menu)} aria-label="Toggle menu">{menu ? <X /> : <Menu />}</button>
+        <div className={"links " + (menu ? "open" : "")}><a href="#home">Home</a><a href="#products">Products</a><a href="#products">Deals</a><a href="#support">Support</a></div>
+        <div className="search"><Search size={18} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Search products..." aria-label="Search products" /></div>
+        <button className="cart" onClick={() => setCheckout(true)} aria-label="Open cart"><ShoppingCart /><span>{cart.reduce((sum, i) => sum + (Number(i.qty) || 0), 0)}</span></button>
+      </nav>
+    </header>
+    <section className="hero" id="home">
+      <div><p className="eyebrow">DEEPAK DIGITAL COMPUTER STUDIO</p><h1>Tech that works as hard as you do.</h1><p>Computers, accessories and smart tech — curated for work, gaming and everyday productivity.</p><button onClick={() => document.getElementById("products")?.scrollIntoView({ behavior: "smooth" })}>Shop now →</button></div>
+      <div className="heroCard"><ShieldCheck size={42} /><h3>Trusted checkout</h3><p>Secure payments, order tracking and automated confirmations.</p></div>
+    </section>
+    <div className="features"><div><Truck />Fast delivery</div><div><CreditCard />Secure payments</div><div><MessageCircle />WhatsApp-ready support</div></div>
+    <main id="products">
+      <div className="sectionHead"><div><p className="eyebrow">SHOP</p><h2>Featured products</h2></div><span>{products.length} products</span></div>
+      {productsError && <p role="status">We couldn’t load products right now. You can still browse the store; please try refreshing in a moment.</p>}
+      {!productsError && products.length === 0 && <p>Products will appear here when the catalog is available.</p>}
+      <div className="grid">{filteredProducts.map(p => <article className="card" key={p._id || p.name}>
+        <img src={p.image || ""} alt={p.name || "Product"} loading="lazy" onError={e => { e.currentTarget.style.visibility = "hidden"; }} />
+        <small>{p.category || "Technology"}</small><h3>{p.name || "Product"}</h3><p className="desc">{p.description || ""}</p><div className="price">{money(p.price)}</div><button onClick={() => add(p)}>Add to cart</button>
+      </article>)}</div>
+    </main>
+    <footer id="support"><div><b className="logo">DDCS<span>.</span></b><p>Deepak Digital Computer Studio — modern commerce for local technology retail.</p></div><div><b>Integrations</b><p>MongoDB • Express • React • Node • Razorpay • Resend • Vercel</p></div></footer>
+    {message && <div className="toast" role="status">{message}<button onClick={() => setMessage("")} aria-label="Dismiss message">×</button></div>}
+    {checkout && <div className="overlay"><div className="modal" role="dialog" aria-modal="true" aria-label="Your cart">
+      <button className="close" onClick={() => setCheckout(false)} aria-label="Close cart">×</button><h2>Your cart</h2>
+      {cart.length === 0 ? <p>Your cart is empty.</p> : <>{cart.map((i, index) => <div className="line" key={i._id || index}><span>{i.name} × {i.qty}</span><b>{money((Number(i.price) || 0) * (Number(i.qty) || 0))}</b></div>)}<hr /><div className="line"><b>Total</b><b>{money(total)}</b></div><button className="pay" onClick={pay} disabled={paying}>{paying ? "Processing…" : "Place order & pay"}</button></>}
+    </div></div>}
+  </>;
+}
+
+createRoot(document.getElementById("root")).render(
+  <ErrorBoundary><BrowserRouter><App /></BrowserRouter></ErrorBoundary>
+);
