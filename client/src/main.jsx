@@ -169,6 +169,19 @@ function App() {
         <button className="icon accountButton" onClick={() => setAccountOpen(true)} aria-label="Open account">{account ? "My account" : "Sign in"}</button><button className="cart" onClick={() => setCheckout(true)} aria-label="Open cart"><ShoppingCart /><span>{cart.reduce((sum, i) => sum + (Number(i.qty) || 0), 0)}</span></button>
       </nav>
     </header>
+    <section className="brandSlider" aria-label="Deepak Digital Computer Studio featured banners">
+      <div className="brandSlideTrack">
+        <article className="brandSlide slideEnglish">
+          <div className="slideCopy"><span className="slideEyebrow">YOUR LOCAL DIGITAL SERVICE CENTRE</span><h1>Deepak Digital<br/><em>Computer Studio</em></h1><p>Digital Services • Computer Solutions • Customer Support</p><a href="#products" className="slideCta">Explore Services <span>→</span></a></div>
+          <div className="slideVisual" aria-hidden="true"><div className="monitor"><div className="screenGlow">D<span>▦</span></div><div className="monitorStand"></div></div><div className="tower"></div><div className="keyboard"></div><div className="slideOrbit"></div></div>
+        </article>
+        <article className="brandSlide slideHindi">
+          <div className="slideCopy"><span className="slideEyebrow">आपकी डिजिटल सेवा का भरोसेमंद साथी</span><h1>दीपक डिजिटल<br/><em>कम्प्यूटर स्टूडियो</em></h1><p>डिजिटल सेवाएँ • कम्प्यूटर समाधान • ग्राहक सहायता</p><a href="#products" className="slideCta">सेवाएँ देखें <span>→</span></a></div>
+          <div className="slideVisual" aria-hidden="true"><div className="serviceCircle"><span>▤</span><span>▣</span><span>⌘</span><span>◎</span><span>♧</span></div><div className="monitor"><div className="screenGlow">D<span>▦</span></div><div className="monitorStand"></div></div><div className="tower"></div></div>
+        </article>
+      </div>
+      <div className="sliderControls"><span className="sliderLabel"><i></i> DIGITAL SERVICES • COMPUTER SOLUTIONS</span><div className="sliderDots"><button className="active" aria-label="Slide 1" onClick={() => document.querySelector(".brandSlider")?.classList.remove("showHindi")}></button><button aria-label="Slide 2" onClick={() => document.querySelector(".brandSlider")?.classList.add("showHindi")}></button></div></div>
+    </section>
     <section className="hero" id="home">
       <div><p className="eyebrow">DEEPAK DIGITAL COMPUTER STUDIO</p><h1>Tech that works as hard as you do.</h1><p>Computers, accessories and smart tech — curated for work, gaming and everyday productivity.</p><button onClick={() => document.getElementById("products")?.scrollIntoView({ behavior: "smooth" })}>Shop now →</button></div>
       <div className="heroCard"><ShieldCheck size={42} /><h3>Trusted checkout</h3><p>Secure payments, order tracking and automated confirmations.</p></div>
