@@ -162,7 +162,7 @@ function App() {
     <header>
       <div className="top">🚀 Free delivery on orders over ₹999 • Secure checkout</div>
       <nav>
-        <b className="logo">DDCS<span>.</span></b>
+        <a className="brandMark" href="#home" aria-label="Deepak Digital Computer Studio home"><span className="brandIcon"><span className="pixelGrid"><i></i><i></i><i></i><i></i><i></i><i></i></span><b>D</b><em></em></span><span className="brandWords"><strong><span>Deepak</span> <i>Digital</i></strong><small>Computer Studio</small></span></a>
         <button className="icon" onClick={() => setMenu(!menu)} aria-label="Toggle menu">{menu ? <X /> : <Menu />}</button>
         <div className={"links " + (menu ? "open" : "")}><a href="#home">Home</a><a href="#products">Products</a><a href="#products">Deals</a><a href="#support">Support</a></div>
         <div className="search"><Search size={18} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Search products..." aria-label="Search products" /></div>
@@ -183,7 +183,7 @@ function App() {
         <small>{p.category || "Technology"}</small><h3>{p.name || "Product"}</h3><p className="desc">{p.description || ""}</p><div className="price">{money(p.price)}</div><button onClick={() => add(p)}>Add to cart</button>
       </article>)}</div>
     </main>
-    <footer id="support"><div><b className="logo">DDCS<span>.</span></b><p>Deepak Digital Computer Studio — modern commerce for local technology retail.</p></div><div><b>Integrations</b><p>MongoDB • Express • React • Node • Razorpay • Resend • Vercel</p></div></footer>
+    <footer id="support"><div><a className="brandMark footerBrand" href="#home" aria-label="Deepak Digital Computer Studio home"><span className="brandIcon"><span className="pixelGrid"><i></i><i></i><i></i><i></i><i></i><i></i></span><b>D</b><em></em></span><span className="brandWords"><strong><span>Deepak</span> <i>Digital</i></strong><small>Computer Studio</small></span></a><p>Deepak Digital Computer Studio — modern commerce for local technology retail.</p></div><div><b>Integrations</b><p>MongoDB • Express • React • Node • Razorpay • Resend • Vercel</p></div></footer>
 
     {accountOpen && <div className="overlay"><div className="modal accountModal" role="dialog" aria-modal="true" aria-label="Customer account">
       <button className="close" onClick={() => setAccountOpen(false)} aria-label="Close account">×</button>
