@@ -278,10 +278,11 @@ function App() {
     const value = String(term || "").trim().toLowerCase();
     setSearchOpen(false);
     if (!value) { setShowCatalog(true); window.setTimeout(() => document.getElementById("products")?.scrollIntoView({ behavior: "smooth" }), 40); return; }
-    const section = sectionTargets.find(item => (item.title + " " + item.keywords).toLowerCase().includes(value));
-    const productMatch = products.some(p => [p.name,p.category,p.description,p.slug,...(p.offers||[])].join(" ").toLowerCase().includes(value));
+    const section = sectionTargets.find(item => matchesSearch(item.title + " " + item.keywords, value));
+    const productMatch = products.some(p => matchesSearch([p.name,p.category,p.description,p.slug,...(p.offers||[])].join(" "), value));
     if (section && section.id !== "products" && !productMatch) {
-      if (section.id === "home") setShowCatalog(false);
+      setShowCatalog(false);
+      setSelectedProduct(null);
       window.setTimeout(() => document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
       return;
     }
