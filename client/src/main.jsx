@@ -423,7 +423,7 @@ function App() {
           <div className="cardActions"><button onClick={()=>{add(p);setCheckout(true);setMessage("Selected "+p.name+". Complete payment using the PayPal button in checkout.")}}><CreditCard size={16}/> Buy with PayPal</button><button className="secondaryAction" onClick={()=>{window.open("https://forms.gle/RVsTMhm8KeYZneLN9","_blank","noopener,noreferrer")}}>Apply/Request</button></div>
         </article>;
       })}</div>
-    </main>}
+    </main> : null}
 
     <section className="ddcsAdditions" id="ddcs-gallery"><div className="sectionHead"><div><p className="eyebrow">DEALS & PROMOTIONS</p><h2>Offers Gallery</h2><p>Explore our current service offers and studio promotions.</p></div></div>
       <div className="sectionHead"><div><p className="eyebrow">OUR STUDIO</p><h2>Deepak Digital Computer Studio</h2></div></div>
