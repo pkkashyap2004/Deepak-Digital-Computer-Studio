@@ -22,10 +22,10 @@ app.post("/api/auth/otp/request",async(req,res)=>{
     const email=String(req.body?.email||"").trim().toLowerCase();
     const suppliedName=String(req.body?.name||"").trim();
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254)return res.status(400).json({message:"Enter a valid email address."});
-    if(suppliedName.length>100)return res.status(400).json({message:"Name must be 100 characters or fewer."});
+    if(suppliedName.length<2||suppliedName.length>100)return res.status(400).json({message:"Enter your name (2–100 characters) to continue with email OTP."});
     await db();
     const user=await User.findOne({email});
-    if(!user&&suppliedName.length<2)return res.status(400).json({message:"Enter your name to create a new account with email OTP."});
+    
     const now=new Date();
     const prior=await EmailOtp.findOne({email});
     if(prior&&now.getTime()-new Date(prior.lastSentAt).getTime()<60000)return res.status(429).json({message:"Please wait 60 seconds before requesting another code."});
@@ -36,7 +36,7 @@ app.post("/api/auth/otp/request",async(req,res)=>{
     const code=String(crypto.randomInt(0,1000000)).padStart(6,"0");
     const secret=process.env.OTP_SECRET||process.env.JWT_SECRET;
     const codeHash=crypto.createHash("sha256").update(email+":"+code+":"+secret).digest("hex");
-    await EmailOtp.findOneAndUpdate({email},{$set:{email,name:user?.name||suppliedName,codeHash,expiresAt:new Date(now.getTime()+10*60*1000),lastSentAt:now,windowStartedAt,requestsInWindow,attempts:0}}, {upsert:true,new:true,setDefaultsOnInsert:true});
+    await EmailOtp.findOneAndUpdate({email},{$set:{email,name:user?.name||suppliedName,codeHash,codeExpiresAt:new Date(now.getTime()+10*60*1000),expiresAt:new Date(now.getTime()+2*60*60*1000),lastSentAt:now,windowStartedAt,requestsInWindow,attempts:0}}, {upsert:true,new:true,setDefaultsOnInsert:true});
     try{
       await sendEmail(email,"Your DDCS sign-in code","<div style=\"font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px\"><h2>Deepak Digital Computer Studio</h2><p>Your one-time sign-in code is:</p><p style=\"font-size:32px;font-weight:700;letter-spacing:8px\">"+code+"</p><p>This code expires in 10 minutes. Never share it with anyone.</p><p>If you did not request this code, you can ignore this email.</p></div>");
     }catch(mailError){
@@ -55,7 +55,7 @@ app.post("/api/auth/otp/verify",async(req,res)=>{
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!/^[0-9]{6}$/.test(code))return res.status(400).json({message:"Enter the email address and six-digit code."});
     await db();
     const record=await EmailOtp.findOne({email});
-    if(!record||new Date(record.expiresAt).getTime()<=Date.now())return res.status(400).json({message:"That code has expired or is no longer valid. Request a new code."});
+    if(!record||new Date(record.codeExpiresAt).getTime()<=Date.now())return res.status(400).json({message:"That code has expired or is no longer valid. Request a new code."});
     if(Number(record.attempts||0)>=5){await EmailOtp.deleteOne({email});return res.status(429).json({message:"Too many incorrect attempts. Request a new code."});}
     const secret=process.env.OTP_SECRET||process.env.JWT_SECRET;
     const expected=crypto.createHash("sha256").update(email+":"+code+":"+secret).digest("hex");
