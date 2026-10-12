@@ -1,0 +1,38 @@
+name: DDCS build verification
+
+on:
+  push:
+    branches:
+      - feature/ddcs-search-mobile-otp
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-syntax-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install root dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build existing frontend
+        run: npm run build
+      - name: Check backend JavaScript syntax
+        run: |
+          node --check server.js
+          node --check api/index.js
+          node --check api/controllers/apiController.js
+          node --check api/models/index.js
+          node --check api/routes/apiRoutes.js
+          node --check api/middleware/auth.js
+          node --check api/services/database.js
+          node --check api/services/catalogSeed.js
+          node --check api/services/emailService.js
