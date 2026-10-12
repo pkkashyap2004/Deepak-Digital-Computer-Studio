@@ -272,7 +272,8 @@ function App() {
     { id: "ddcs-cta", title: "Get Started", keywords: "get started call now contact us apply request start today" },
     { id: "support", title: "Footer & Support", keywords: "footer address phone email support links" }
   ];
-  const queryTokens = normalizedQuery.split(/\\s+/).filter(Boolean);\n  const matchesSearch = (text, query = normalizedQuery) => { const tokens = String(query || "").toLowerCase().split(/\\s+/).filter(Boolean); const haystack = String(text || "").toLowerCase(); return tokens.length > 0 && tokens.every(token => haystack.includes(token)); };\n  const sectionMatches = normalizedQuery ? sectionTargets.filter(item => matchesSearch(item.title + " " + item.keywords)) : [];
+  const matchesSearch = (text, query = normalizedQuery) => { const tokens = String(query || "").toLowerCase().split(/\s+/).filter(Boolean); const haystack = String(text || "").toLowerCase(); return tokens.length > 0 && tokens.every(token => haystack.includes(token)); };
+  const sectionMatches = normalizedQuery ? sectionTargets.filter(item => matchesSearch(item.title + " " + item.keywords)) : [];
   function runSearch(term = q) {
     const value = String(term || "").trim().toLowerCase();
     setSearchOpen(false);
