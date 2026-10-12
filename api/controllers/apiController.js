@@ -22,10 +22,10 @@ app.post("/api/auth/otp/request",async(req,res)=>{
     const email=String(req.body?.email||"").trim().toLowerCase();
     const suppliedName=String(req.body?.name||"").trim();
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254)return res.status(400).json({message:"Enter a valid email address."});
-    if(suppliedName.length<2||suppliedName.length>100)return res.status(400).json({message:"Enter your name (2–100 characters) to continue with email OTP."});
+    if(suppliedName.length>100)return res.status(400).json({message:"Name must be 100 characters or fewer."});
     await db();
     const user=await User.findOne({email});
-    
+    if(!user&&suppliedName.length<2)return res.status(400).json({message:"Enter your name to create a new account with email OTP."});
     const now=new Date();
     const prior=await EmailOtp.findOne({email});
     if(prior&&now.getTime()-new Date(prior.lastSentAt).getTime()<60000)return res.status(429).json({message:"Please wait 60 seconds before requesting another code."});
