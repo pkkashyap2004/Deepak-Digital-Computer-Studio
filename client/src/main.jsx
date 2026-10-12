@@ -56,6 +56,7 @@ function App() {
   const [paying, setPaying] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
+  const [otpCode, setOtpCode] = useState("");
   const [authForm, setAuthForm] = useState({name:"",email:"",password:""});
   const [account, setAccount] = useState(() => { try { return JSON.parse(window.localStorage.getItem("ddcs_user") || "null"); } catch { return null; } });
   const [accountToken, setAccountToken] = useState(() => { try { return window.localStorage.getItem("ddcs_token") || ""; } catch { return ""; } });
@@ -204,6 +205,40 @@ function App() {
       setMessage(error.message || "Unable to sign in. Please check your connection and try again.");
     } finally { setAccountBusy(false); }
   }
+  async function submitOtp(event) {
+    event.preventDefault();
+    setAccountBusy(true);
+    const email = authForm.email.trim().toLowerCase();
+    try {
+      const endpoint = authMode === "otp-verify" ? "/auth/otp/verify" : "/auth/otp/request";
+      const response = await fetch(API + endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ email, name: authForm.name.trim(), code: otpCode.trim() })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || "Email code request failed. Please try again.");
+      if (authMode !== "otp-verify") {
+        setAuthMode("otp-verify");
+        setMessage(data.message || "Check your email for the six-digit code.");
+        return;
+      }
+      if (!data.token || !data.user) throw new Error("The server response was incomplete. Please try again.");
+      try {
+        window.localStorage.setItem("ddcs_token", data.token);
+        window.localStorage.setItem("ddcs_user", JSON.stringify(data.user));
+      } catch (storageError) { console.warn("Session storage unavailable:", storageError); }
+      setAccountToken(data.token);
+      setAccount(data.user);
+      setAccountOpen(false);
+      setOtpCode("");
+      setAuthForm({name:"",email:"",password:""});
+      setMessage("Signed in with email verification.");
+    } catch (error) {
+      setMessage(error.message || "Email OTP sign-in failed. Please try again.");
+    } finally { setAccountBusy(false); }
+  }
+
   function signOut() {
     try { window.localStorage.removeItem("ddcs_token"); window.localStorage.removeItem("ddcs_user"); } catch {}
     setAccountToken(""); setAccount(null); setMessage("You have signed out.");
@@ -403,14 +438,14 @@ function App() {
     {accountOpen && <div className="overlay"><div className="modal accountModal" role="dialog" aria-modal="true" aria-label="Customer account">
       <button className="close" onClick={() => setAccountOpen(false)} aria-label="Close account">×</button>
       {account ? <><h2>Welcome, {account.name}</h2><p>{account.email}</p><p>Your account is ready. Profile and address management will be expanded in the next iteration.</p><button onClick={signOut}>Sign out</button></> : <>
-        <h2>{authMode === "register" ? "Create account" : "Sign in"}</h2>
-        <form onSubmit={submitAuth} className="accountForm">
-          {authMode === "register" && <input required maxLength="100" value={authForm.name} onChange={e => setAuthForm({...authForm,name:e.target.value})} placeholder="Full name" aria-label="Full name" />}
+        <h2>{authMode === "register" ? "Create account" : authMode === "otp" ? "Sign in with email code" : authMode === "otp-verify" ? "Verify your email" : "Sign in"}</h2>
+        <form onSubmit={authMode.startsWith("otp") ? submitOtp : submitAuth} className="accountForm">
+          {(authMode === "register" || authMode.startsWith("otp")) && <input required={authMode === "register"} maxLength="100" value={authForm.name} onChange={e => setAuthForm({...authForm,name:e.target.value})} placeholder={authMode.startsWith("otp") ? "Full name (new accounts only)" : "Full name"} aria-label="Full name" /> }
           <input required type="email" autoComplete="email" value={authForm.email} onChange={e => setAuthForm({...authForm,email:e.target.value})} placeholder="Email address" aria-label="Email address" />
-          <input required minLength={authMode === "register" ? 8 : 1} maxLength="128" type="password" autoComplete={authMode === "register" ? "new-password" : "current-password"} value={authForm.password} onChange={e => setAuthForm({...authForm,password:e.target.value})} placeholder="Password (at least 6 characters)" aria-label="Password" />
-          <button className="pay" type="submit" disabled={accountBusy}>{accountBusy ? "Please wait…" : authMode === "register" ? "Create account" : "Sign in"}</button>
+          {!authMode.startsWith("otp") && <input required minLength={authMode === "register" ? 8 : 1} maxLength="128" type="password" autoComplete={authMode === "register" ? "new-password" : "current-password"} value={authForm.password} onChange={e => setAuthForm({...authForm,password:e.target.value})} placeholder="Password (at least 8 characters)" aria-label="Password" /> }\n          {authMode === "otp-verify" && <input required inputMode="numeric" pattern="[0-9]{6}" minLength="6" maxLength="6" autoComplete="one-time-code" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\\D/g, "").slice(0,6))} placeholder="6-digit email code" aria-label="Six-digit email verification code" />}
+          <button className="pay" type="submit" disabled={accountBusy}>{accountBusy ? "Please wait…" : authMode === "register" ? "Create account" : authMode === "otp" ? "Send email code" : authMode === "otp-verify" ? "Verify code & sign in" : "Sign in"}</button>
         </form>
-        <p>{authMode === "register" ? "Already registered?" : "New to DDCS?"} <button onClick={() => setAuthMode(authMode === "register" ? "login" : "register")}>{authMode === "register" ? "Sign in" : "Create account"}</button></p>
+        {authMode.startsWith("otp") ? <p><button type="button" onClick={() => { setAuthMode("otp"); setOtpCode(""); }}>Change email / resend code</button> · <button type="button" onClick={() => setAuthMode("login")}>Use password instead</button></p> : <><p>{authMode === "register" ? "Already registered?" : "New to DDCS?"} <button type="button" onClick={() => setAuthMode(authMode === "register" ? "login" : "register")}>{authMode === "register" ? "Sign in" : "Create account"}</button></p><p><button type="button" className="otpAlternative" onClick={() => { setAuthMode("otp"); setOtpCode(""); }}>Use email OTP instead</button></p></>}
       </>}
     </div></div>}
 
