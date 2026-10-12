@@ -103,6 +103,46 @@ function App() {
       : [...current, { ...p, qty: 1 }];
   });
 
+
+  useEffect(() => {
+    if (!checkout) return;
+    const containerId = "paypal-container-YMS9RP3FG6E78";
+    let cancelled = false;
+    const renderHostedButton = () => {
+      if (cancelled || !window.paypal?.HostedButtons) return;
+      const container = document.getElementById(containerId);
+      if (!container || container.dataset.rendered === "true") return;
+      container.dataset.rendered = "true";
+      window.paypal.HostedButtons({ hostedButtonId: "YMS9RP3FG6E78" })
+        .render("#" + containerId)
+        .catch(error => {
+          console.error("PayPal Hosted Button failed to render:", error);
+          container.dataset.rendered = "false";
+          container.textContent = "PayPal checkout is temporarily unavailable. Please try again.";
+        });
+    };
+    const scriptUrl = "https://www.paypal.com/sdk/js?client-id=BAASv9QQOifkaqyK1MaN7OjNUwi9iTpiC4oIUeYuQnAq-ec96XSjxEtpS6UcmgB___h1vaqA0ihiLGonmg&components=hosted-buttons&disable-funding=venmo&currency=USD";
+    let script = document.querySelector('script[data-ddcs-paypal-sdk="true"]');
+    if (!script) {
+      script = document.createElement("script");
+      script.src = scriptUrl;
+      script.async = true;
+      script.crossOrigin = "anonymous";
+      script.dataset.ddcsPaypalSdk = "true";
+      script.onload = renderHostedButton;
+      script.onerror = () => {
+        const container = document.getElementById(containerId);
+        if (container) container.textContent = "PayPal checkout could not load. Please try again later.";
+      };
+      document.body.appendChild(script);
+    } else if (window.paypal?.HostedButtons) {
+      renderHostedButton();
+    } else {
+      script.addEventListener("load", renderHostedButton, { once: true });
+    }
+    return () => { cancelled = true; };
+  }, [checkout]);
+
   async function submitAuth(event) {
     event.preventDefault();
     setAccountBusy(true);
@@ -304,7 +344,7 @@ function App() {
     {message && <div className="toast" role="status">{message}<button onClick={() => setMessage("")} aria-label="Dismiss message">×</button></div>}
     {checkout && <div className="overlay"><div className="modal" role="dialog" aria-modal="true" aria-label="Your cart">
       <button className="close" onClick={() => setCheckout(false)} aria-label="Close cart">×</button><h2>Your cart</h2>
-      {cart.length === 0 ? <p>Your cart is empty.</p> : <>{cart.map((i, index) => <div className="line" key={i._id || index}><span>{i.name} × {i.qty}</span><b>{money((Number(i.price) || 0) * (Number(i.qty) || 0))}</b></div>)}<hr /><div className="line"><b>Total</b><b>{money(total)}</b></div><button className="pay" onClick={pay} disabled={paying}>{paying ? "Processing…" : "Place order & pay"}</button></>}
+      {cart.length === 0 ? <p>Your cart is empty.</p> : <>{cart.map((i, index) => <div className="line" key={i._id || index}><span>{i.name} × {i.qty}</span><b>{money((Number(i.price) || 0) * (Number(i.qty) || 0))}</b></div>)}<hr /><div className="line"><b>Total</b><b>{money(total)}</b></div><button className="pay" onClick={pay} disabled={paying}>{paying ? "Processing…" : "Place order & pay"}</button><div className="paypalCheckout"><h3>PayPal checkout</h3><p>Use the hosted PayPal button below for the linked USD payment option.</p><div id="paypal-container-YMS9RP3FG6E78"></div><small>PayPal Hosted Button uses the payment settings configured in your PayPal account; it may not automatically charge the cart total.</small></div></>}
     </div></div>}
   </>;
 }
