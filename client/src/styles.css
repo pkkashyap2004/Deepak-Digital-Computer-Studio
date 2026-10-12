@@ -154,3 +154,67 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
     transition: none !important;
   }
 }
+
+
+/* Search, catalogue controls, About and Trust — additive styles; existing palette retained. */
+.searchShell{position:relative;min-width:220px}
+.searchForm{display:flex;flex:1;min-width:0}
+.searchForm input{width:100%;min-width:0;background:transparent}
+.searchResults{position:absolute;top:calc(100% + 10px);left:0;right:0;z-index:40;background:#fff;border:1px solid #dfe4eb;border-radius:14px;box-shadow:0 18px 45px rgba(17,24,39,.16);padding:7px;max-height:min(70vh,440px);overflow:auto;animation:ddcsEnterSoft .18s ease-out both}
+.searchResult{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;text-align:left;background:transparent;border:0;border-radius:9px;padding:10px;color:#172033}
+.searchResult:hover,.searchResult:focus-visible{background:#f3f5f9}
+.searchResult span:first-child{display:grid;gap:3px;min-width:0}
+.searchResult b{font-size:13px;overflow-wrap:anywhere}
+.searchResult small{font-size:11px;color:#64748b}
+.searchEmpty{padding:14px 10px;font-size:13px;color:#64748b}
+.searchAll{width:100%;border:0;border-top:1px solid #e8ebf0;background:#fff;color:#172033;padding:11px;text-align:left;font-weight:700}
+.ddcsAbout,.ddcsTrust{padding:52px 8%;scroll-margin-top:90px}
+.aboutGrid,.trustGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.aboutCard,.trustCard{background:#fff;border:1px solid #e8ebf0;border-radius:18px;padding:24px;box-shadow:0 8px 28px rgba(17,24,39,.045);animation:ddcsEnterSoft .45s ease-out both;transition:transform .2s ease,box-shadow .2s ease}
+.aboutCard:hover,.trustCard:hover{transform:translateY(-4px);box-shadow:0 15px 35px rgba(17,24,39,.09)}
+.aboutCard h3,.trustCard h3{margin:12px 0 8px;color:#172033}
+.aboutCard p,.trustCard p{margin:0;color:#64748b;line-height:1.65;font-size:14px}
+.aboutIcon{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:#fff1e9;color:#ff6b35;font-size:24px;font-weight:800}
+.trustCard>svg{width:28px;height:28px;color:#ff6b35}
+.trustStats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:20px}
+.trustStats>div{display:grid;gap:6px;text-align:center;background:#fff;border:1px solid #e8ebf0;border-radius:14px;padding:18px 10px;animation:ddcsEnterSoft .5s ease-out both}
+.trustStats strong{font-size:clamp(20px,3vw,30px);color:#172033;overflow-wrap:anywhere}
+.trustStats span{font-size:12px;color:#64748b}
+.catalogControls{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:0 0 22px}
+.catalogControls label{display:grid;gap:6px;font-size:12px;font-weight:700;color:#526070}
+.catalogControls select{min-width:170px;max-width:100%;padding:11px 12px;border:1px solid #dfe4eb;border-radius:10px;background:#fff;color:#172033}
+.catalogReset{background:#fff;border:1px solid #dfe4eb;color:#526070;border-radius:10px;padding:11px 14px}
+#products,.ddcsAdditions,footer{scroll-margin-top:92px}
+.ddcsGallery article,.reviewCta,.contactGrid,.studioPromo{animation:ddcsEnterSoft .5s ease-out both}
+@media(max-width:900px){
+  nav{gap:14px;padding:0 4%}
+  .links{gap:12px}
+  .searchShell{width:min(280px,32vw);min-width:150px;padding:9px}
+  .ddcsAbout,.ddcsTrust{padding:40px 5%}
+}
+@media(max-width:680px){
+  nav{height:auto;min-height:68px;flex-wrap:wrap;gap:10px;padding:10px 4%;position:sticky}
+  .logo,.brandWords strong{font-size:20px}
+  .icon{display:inline-flex;align-items:center;justify-content:center}
+  .links{display:none;order:4;width:100%;flex-basis:100%;flex-wrap:wrap;padding:8px 0}
+  .links.open{display:flex}
+  .links a{padding:8px 10px;border-radius:8px;background:#f7f8fb}
+  .searchShell{order:5;flex:1 1 100%;width:100%;min-width:0;margin-left:0}
+  .searchResults{left:0;right:0}
+  .accountButton{display:inline-flex}
+  .ddcsAbout,.ddcsTrust{padding:30px 4%}
+  .aboutGrid,.trustGrid{grid-template-columns:1fr;gap:12px}
+  .aboutCard,.trustCard{padding:18px}
+  .trustStats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .trustStats>div{padding:14px 8px}
+  .catalogControls{display:grid;grid-template-columns:1fr 1fr;align-items:stretch}
+  .catalogControls label select{min-width:0;width:100%}
+  .catalogReset{grid-column:1/-1}
+  .catalogHeading{align-items:flex-start;gap:10px}
+  .catalogHeading>span{white-space:nowrap}
+  .searchResult{min-height:48px}
+}
+@media(prefers-reduced-motion:reduce){
+  .searchResults,.aboutCard,.trustCard,.trustStats>div,.ddcsGallery article,.reviewCta,.contactGrid,.studioPromo{animation:none!important;transition:none!important}
+  .aboutCard:hover,.trustCard:hover{transform:none}
+}
