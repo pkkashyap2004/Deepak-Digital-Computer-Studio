@@ -67,7 +67,8 @@ function App() {
         const response = await fetch(API + "/products");
         if (!response.ok) throw new Error("Products API returned " + response.status);
         const data = await response.json();
-        const list = Array.isArray(data) ? data : (Array.isArray(data.products) ? data.products : []);
+        const rawList = Array.isArray(data) ? data : (Array.isArray(data.products) ? data.products : []);
+        const list = rawList.map(item => /domicil(e)? certificate/i.test(String(item.name||"")) ? {...item, name:"Domicile Certificate", price:80, service:false, offers:["Supporting document checklist","Guidance on the Uttar Pradesh application process"]} : item);
         if (active) {
           setProducts(list);
           setProductsError(false);
@@ -263,11 +264,11 @@ function App() {
         const oldPrice=Number(p.compareAt)>Number(p.price)?Number(p.compareAt):(discount>0?Number(p.price)/(1-discount/100):0);
         return <article className="card serviceCard" key={p._id||p.name}>
           <button className="productImageButton" onClick={()=>openProduct(p)} aria-label={"View "+p.name}><img src={p.image||""} alt={p.name||"Service"} loading="lazy" onError={e=>{e.currentTarget.style.visibility="hidden";}}/><span className="imageLabel">View details ↗</span>{discount>0&&<span className="cardDiscount">{discount}% OFF</span>}</button>
-          <small>{p.category||"Digital Service"}</small><h3>{p.name||"Product"}</h3><p className="desc">{p.description||"Learn about this service, required documents and how to apply."}</p>
-          <div className="ratingLine"><span className="stars">{Number(p.reviewCount)>0 ? "★★★★★" : "Not yet rated"}</span>{Number(p.reviewCount)>0 && <><b>{Number(p.rating||0).toFixed(1)}</b><span>({Number(p.reviewCount)} reviews)</span></>}</div>
+          <small>{/domicil(e)? certificate/i.test(String(p.name||"")) ? "Government Services" : (p.category||"Digital Service")}</small><h3>{p.name||"Product"}</h3><p className="desc">{/domicil(e)? certificate/i.test(String(p.name||"")) ? "Guidance on the Uttar Pradesh domicile certificate application process, common supporting documents and the appropriate official application channel." : (p.description||"Learn about this service, required documents and how to apply.")}</p>
+          <div className="ratingLine"><span className={"stars "+(Number(p.reviewCount)>0?"starsRated":"starsInvite")} aria-label={Number(p.reviewCount)>0 ? "Customer rating" : "No customer rating yet"}>{Number(p.reviewCount)>0 ? "★★★★★" : "☆☆☆☆☆"}</span>{Number(p.reviewCount)===0&&<span className="ratingInvite">Be the first to review</span>}{Number(p.reviewCount)>0 && <><b>{Number(p.rating||0).toFixed(1)}</b><span>({Number(p.reviewCount)} reviews)</span></>}</div>
           <div className="cardPrice">{p.service ? <span className="servicePrice">Contact for charges</span> : money(p.price)} {oldPrice>Number(p.price)&&<span className="oldPrice">{money(oldPrice)}</span>}</div>
           <div className="cardStats"><span><Eye size={15}/> {Number(p.views||0).toLocaleString("en-IN")} views</span><span><Users size={15}/> {Number(p.inquiries||0).toLocaleString("en-IN")} enquiries</span></div>
-          <div className="offerMini"><b>Offers</b><span>{p.offers?.[0]||"Ask us about current offers and service charges."}</span></div>
+          <div className="offerMini"><b>Offers · {(/domicil(e)? certificate/i.test(String(p.name||"")) ? 2 : (p.offers?.length||1))}</b><span>{p.offers?.[0]||"Ask us about current offers and service charges."}</span>{/domicil(e)? certificate/i.test(String(p.name||""))&&<span>✓ Uttar Pradesh application guidance</span>}</div>
           <div className="cardActions"><button onClick={()=>{add(p);setMessage("Added to cart: "+p.name)}}><ShoppingCart size={16}/> Add to cart</button><button className="secondaryAction" onClick={()=>openProduct(p)}>Online form / Details</button></div>
         </article>;
       })}</div>
