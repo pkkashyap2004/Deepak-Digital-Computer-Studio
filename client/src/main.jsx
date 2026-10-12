@@ -246,6 +246,7 @@ function App() {
   const total = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 0), 0);
   const normalizedQuery = q.trim().toLowerCase();
   const categories = [...new Set(products.map(p => String(p.category || "Digital Services").trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+  const matchesSearch = (text, query = normalizedQuery) => { const tokens = String(query || "").toLowerCase().split(/\s+/).filter(Boolean); const haystack = String(text || "").toLowerCase(); return tokens.length > 0 && tokens.every(token => haystack.includes(token)); };
   const filteredProducts = products.filter(p => {
     const searchable = [
       p.name, p.category, p.description, ...(Array.isArray(p.offers) ? p.offers : []),
@@ -272,7 +273,6 @@ function App() {
     { id: "ddcs-cta", title: "Get Started", keywords: "get started call now contact us apply request start today" },
     { id: "support", title: "Footer & Support", keywords: "footer address phone email support links" }
   ];
-  const matchesSearch = (text, query = normalizedQuery) => { const tokens = String(query || "").toLowerCase().split(/\s+/).filter(Boolean); const haystack = String(text || "").toLowerCase(); return tokens.length > 0 && tokens.every(token => haystack.includes(token)); };
   const sectionMatches = normalizedQuery ? sectionTargets.filter(item => matchesSearch(item.title + " " + item.keywords)) : [];
   function runSearch(term = q) {
     const value = String(term || "").trim().toLowerCase();
