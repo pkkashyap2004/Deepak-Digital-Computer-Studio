@@ -1,7 +1,21 @@
 const Product=mongoose.models.Product||mongoose.model("Product",new mongoose.Schema({name:{type:String,required:true},slug:{type:String,unique:true,index:true},description:String,price:{type:Number,min:0},compareAt:{type:Number,min:0},image:String,category:{type:String,index:true},stock:{type:Number,default:0,min:0},featured:Boolean,service:{type:Boolean,default:false},active:{type:Boolean,default:true},views:{type:Number,default:0,min:0},inquiries:{type:Number,default:0,min:0},rating:{type:Number,default:4.8,min:0,max:5},reviewCount:{type:Number,default:0,min:0},discountPercent:{type:Number,default:0,min:0,max:95},offers:[String]},{timestamps:true}));
 const AddressSchema=new mongoose.Schema({label:{type:String,default:"Home",trim:true,maxlength:40},fullName:{type:String,required:true,trim:true,maxlength:100},phone:{type:String,required:true,trim:true,maxlength:20},line1:{type:String,required:true,trim:true,maxlength:180},line2:{type:String,trim:true,maxlength:180},city:{type:String,required:true,trim:true,maxlength:80},state:{type:String,required:true,trim:true,maxlength:80},postalCode:{type:String,required:true,trim:true,maxlength:12},country:{type:String,default:"India",trim:true,maxlength:60},isDefault:{type:Boolean,default:false}},{timestamps:true});
-const User=mongoose.models.User||mongoose.model("User",new mongoose.Schema({name:{type:String,required:true,trim:true,maxlength:100},email:{type:String,required:true,unique:true,index:true,lowercase:true,trim:true},passwordHash:{type:String,required:true},role:{type:String,enum:["customer","admin"],default:"customer"},addresses:[AddressSchema]},{timestamps:true}));
+const User=mongoose.models.User||mongoose.model("User",new mongoose.Schema({name:{type:String,required:true,trim:true,maxlength:100},email:{type:String,required:true,unique:true,index:true,lowercase:true,trim:true},passwordHash:{type:String,default:null},role:{type:String,enum:["customer","admin"],default:"customer"},addresses:[AddressSchema]},{timestamps:true}));
 const Order=mongoose.models.Order||mongoose.model("Order",new mongoose.Schema({userId:String,items:[{productId:String,name:String,price:Number,qty:Number}],total:Number,status:{type:String,enum:["pending","confirmed","processing","shipped","delivered","cancelled"],default:"pending"},paymentStatus:{type:String,enum:["pending","created","paid","failed","refunded"],default:"pending"},paymentMethod:String,paymentOrderId:String,paymentId:String,shipping:Object},{timestamps:true}));
 const Coupon=mongoose.models.Coupon||mongoose.model("Coupon",new mongoose.Schema({code:{type:String,unique:true,index:true},type:{type:String,enum:["percent","fixed"]},value:Number,minOrder:{type:Number,default:0},active:{type:Boolean,default:true},expiresAt:Date}));
 const Inquiry=mongoose.models.Inquiry||mongoose.model("Inquiry",new mongoose.Schema({productId:{type:String,index:true},productName:{type:String,required:true},name:{type:String,required:true,trim:true,maxlength:100},phone:{type:String,required:true,trim:true,maxlength:25},note:{type:String,trim:true,maxlength:1000},status:{type:String,enum:["new","contacted","closed"],default:"new"}},{timestamps:true}));
-module.exports = { Product, User, Order, Coupon, Inquiry };
+const EmailOtp=mongoose.models.EmailOtp||mongoose.model("EmailOtp",new mongoose.Schema({
+  email:{type:String,required:true,unique:true,lowercase:true,trim:true,index:true},
+  name:{type:String,trim:true,maxlength:100},
+  codeHash:{type:String,required:true},
+  expiresAt:{type:Date,required:true,index:{expires:0}},
+  lastSentAt:{type:Date,required:true},
+  windowStartedAt:{type:Date,required:true},
+  requestsInWindow:{type:Number,default:1,min:0},
+  attempts:{type:Number,default:0,min:0}
+},{timestamps:true}));
+const SiteMetric=mongoose.models.SiteMetric||mongoose.model("SiteMetric",new mongoose.Schema({
+  key:{type:String,unique:true,required:true},
+  totalVisits:{type:Number,default:0,min:0}
+},{timestamps:true}));
+module.exports = { Product, User, Order, Coupon, Inquiry, EmailOtp, SiteMetric };
