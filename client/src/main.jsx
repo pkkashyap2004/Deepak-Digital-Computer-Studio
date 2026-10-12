@@ -4,7 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ShoppingCart, Search, Menu, X, ShieldCheck, Truck, CreditCard, MessageCircle, Eye, Star, ArrowLeft, FileText, Users } from "lucide-react";
 import "./styles.css";
 
-const API = "/api";
+const API = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
 const money = n => "₹" + Number(n || 0).toLocaleString("en-IN");
 
 function readCart() {
