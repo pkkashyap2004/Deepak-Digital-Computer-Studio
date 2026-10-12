@@ -40,7 +40,6 @@ app.post("/api/auth/otp/request",async(req,res)=>{
     try{
       await sendEmail(email,"Your DDCS sign-in code","<div style=\"font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px\"><h2>Deepak Digital Computer Studio</h2><p>Your one-time sign-in code is:</p><p style=\"font-size:32px;font-weight:700;letter-spacing:8px\">"+code+"</p><p>This code expires in 10 minutes. Never share it with anyone.</p><p>If you did not request this code, you can ignore this email.</p></div>");
     }catch(mailError){
-      await EmailOtp.deleteOne({email});
       console.error("OTP email delivery failed:",mailError.message);
       return res.status(502).json({message:"We could not send the email code. Check the Resend API key and verified sender domain, then try again."});
     }
