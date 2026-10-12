@@ -44,6 +44,11 @@ function App() {
   const starterProducts = [["Income Certificate Assistance","Government Services","Guidance on the Uttar Pradesh income certificate application process and supporting documents.",60,"Supporting document checklist"],["Caste Certificate Assistance","Government Services","Guidance on the Uttar Pradesh caste certificate application process and official application channel.",60,"Supporting document checklist"],["Domicile Certificate","Government Services","Guidance on the Uttar Pradesh domicile certificate application process and supporting documents.",80,"Supporting document checklist"],["PAN Card Application Assistance","Identity Services","Help understanding PAN application steps and required documents.",100,"Document checklist"],["Voter ID Assistance","Identity Services","Guidance for voter registration and correction requests through official channels.",80,"Application guidance"],["Ayushman Card Assistance","Government Services","Guidance on eligibility checks and official Ayushman card application steps.",50,"Eligibility guidance"],["Ration Card Assistance","Government Services","Support with understanding ration card application and correction steps.",100,"Document checklist"],["Birth Certificate Guidance","Government Services","Information about the appropriate local authority and supporting records.",100,"Application guidance"],["Income Certificate Renewal Help","Government Services","Guidance for renewal and checking the appropriate application channel.",50,"Renewal checklist"],["Scholarship Form Assistance","Student Services","Help understanding scholarship forms, eligibility details and required documents.",100,"Form checklist"],["Job Application Assistance","Career Services","Support with online job application forms and document preparation.",100,"Application support"],["Exam Form Assistance","Student Services","Guidance for online examination forms and common document requirements.",80,"Form checklist"],["Online Form Filling","Digital Services","Assistance with online forms and accurate document entry.",50,"Form filling support"],["Printing & Scanning Service","Computer Services","Document printing, scanning and digital file preparation.",10,"Print and scan service"],["Resume & Typing Service","Computer Services","Typing and resume formatting support for study and job applications.",100,"Formatting support"]].map((p,i)=>({ _id:"ddcs-starter-"+(i+1), slug:"ddcs-starter-"+(i+1), name:p[0], category:p[1], description:p[2], price:p[3], views:0, inquiries:0, reviewCount:0, rating:0, offers:[p[4]], service:false, starterCatalog:true }));
   const [cart, setCart] = useState(readCart);
   const [q, setQ] = useState("");
+  const [showCatalog, setShowCatalog] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("featured");
+  const [siteStats, setSiteStats] = useState({ totalVisits: 0, totalReviews: 0, averageRating: 0, products: 0 });
   const [menu, setMenu] = useState(false);
   const [checkout, setCheckout] = useState(false);
   const [message, setMessage] = useState("");
@@ -183,10 +188,48 @@ function App() {
     setAccountToken(""); setAccount(null); setMessage("You have signed out.");
   }
   const total = cart.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 0), 0);
-  const filteredProducts = products.filter(p =>
-    String(p.name || "").toLowerCase().includes(q.toLowerCase()) ||
-    String(p.category || "").toLowerCase().includes(q.toLowerCase())
-  );
+  const normalizedQuery = q.trim().toLowerCase();
+  const categories = [...new Set(products.map(p => String(p.category || "Digital Services").trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+  const filteredProducts = products.filter(p => {
+    const searchable = [
+      p.name, p.category, p.description, ...(Array.isArray(p.offers) ? p.offers : []),
+      p.slug, p.service ? "service assistance apply request form" : "product buy purchase",
+      Number(p.rating) > 0 ? "rated reviews customer rating" : "not yet rated"
+    ].join(" ").toLowerCase();
+    return (!normalizedQuery || searchable.includes(normalizedQuery)) &&
+      (categoryFilter === "all" || String(p.category || "Digital Services") === categoryFilter);
+  }).sort((a,b) => {
+    if (sortBy === "price-low") return Number(a.price || 0) - Number(b.price || 0);
+    if (sortBy === "price-high") return Number(b.price || 0) - Number(a.price || 0);
+    if (sortBy === "rating") return Number(b.rating || 0) - Number(a.rating || 0);
+    if (sortBy === "popular") return Number(b.views || 0) - Number(a.views || 0);
+    return Number(Boolean(b.featured)) - Number(Boolean(a.featured));
+  });
+  const sectionTargets = [
+    { id: "home", title: "Home & Hero", keywords: "home homepage hero banner welcome start" },
+    { id: "ddcs-about", title: "About DDCS", keywords: "about studio company who we are aim mission purpose" },
+    { id: "ddcs-trust", title: "Features & Trust", keywords: "features trust why choose us secure support delivery aim values" },
+    { id: "products", title: "Products & Services", keywords: "products services catalog shop store price buy purchase filter" },
+    { id: "ddcs-gallery", title: "Gallery & Offers", keywords: "gallery images photos offers promotion deals posters" },
+    { id: "ddcs-reviews", title: "Reviews & Ratings", keywords: "reviews review ratings stars feedback customer trust rating" },
+    { id: "ddcs-contact", title: "Contact & Enquiry", keywords: "contact enquiry form phone whatsapp support request" },
+    { id: "support", title: "Footer & Support", keywords: "footer address phone email support links" }
+  ];
+  const sectionMatches = normalizedQuery ? sectionTargets.filter(item => (item.title + " " + item.keywords).toLowerCase().includes(normalizedQuery)) : [];
+  function runSearch(term = q) {
+    const value = String(term || "").trim().toLowerCase();
+    setSearchOpen(false);
+    if (!value) { setShowCatalog(true); window.setTimeout(() => document.getElementById("products")?.scrollIntoView({ behavior: "smooth" }), 40); return; }
+    const section = sectionTargets.find(item => (item.title + " " + item.keywords).toLowerCase().includes(value));
+    const productMatch = products.some(p => [p.name,p.category,p.description,p.slug,...(p.offers||[])].join(" ").toLowerCase().includes(value));
+    if (section && section.id !== "products" && !productMatch) {
+      if (section.id === "home") setShowCatalog(false);
+      window.setTimeout(() => document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+      return;
+    }
+    setShowCatalog(true);
+    window.setTimeout(() => document.getElementById("products")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  }
 
   function openProduct(p) {
     setSelectedProduct(p);
@@ -231,8 +274,19 @@ function App() {
       <nav>
         <a className="brandMark" href="#home" aria-label="Deepak Digital Computer Studio home"><span className="brandIcon"><span className="pixelGrid"><i></i><i></i><i></i><i></i><i></i><i></i></span><b>D</b><em></em></span><span className="brandWords"><strong><span>Deepak</span> <i>Digital</i></strong><small>Computer Studio</small></span></a>
         <button className="icon" onClick={() => setMenu(!menu)} aria-label="Toggle menu">{menu ? <X /> : <Menu />}</button>
-        <div className={"links " + (menu ? "open" : "")}><a href="#home">Home</a><a href="#products">Products</a><a href="#ddcs-gallery">Gallery</a><a href="#support">Support</a></div>
-        <div className="search"><Search size={18} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Search products..." aria-label="Search products" /></div>
+        <div className={"links " + (menu ? "open" : "")}><a href="#home" onClick={() => { setShowCatalog(false); setMenu(false); }}>Home</a><a href="#products" onClick={e => { e.preventDefault(); setShowCatalog(true); setMenu(false); window.setTimeout(() => document.getElementById("products")?.scrollIntoView({behavior:"smooth"}), 40); }}>Products</a><a href="#ddcs-about" onClick={() => setMenu(false)}>About</a><a href="#ddcs-gallery" onClick={() => setMenu(false)}>Gallery</a><a href="#ddcs-reviews" onClick={() => setMenu(false)}>Reviews</a><a href="#support" onClick={() => setMenu(false)}>Support</a></div>
+        <div className="search searchShell">
+          <Search size={18} />
+          <form className="searchForm" onSubmit={e => { e.preventDefault(); runSearch(); }}>
+            <input value={q} onFocus={() => setSearchOpen(true)} onChange={e => { setQ(e.target.value); setSearchOpen(true); if (e.target.value.trim()) setShowCatalog(true); }} onKeyDown={e => { if(e.key === "Escape") setSearchOpen(false); }} placeholder="Search pages, sections & products..." aria-label="Search pages, sections and products" autoComplete="off" />
+          </form>
+          {searchOpen && normalizedQuery && <div className="searchResults" role="listbox" aria-label="Search suggestions">
+            {sectionMatches.slice(0,4).map(item => <button type="button" className="searchResult" key={item.id} onMouseDown={e=>e.preventDefault()} onClick={() => runSearch(item.title)}><span><b>{item.title}</b><small>Section</small></span><span aria-hidden="true">↗</span></button>)}
+            {products.filter(p => [p.name,p.category,p.description,p.slug,...(p.offers||[])].join(" ").toLowerCase().includes(normalizedQuery)).slice(0,5).map(p => <button type="button" className="searchResult" key={p._id||p.slug||p.name} onMouseDown={e=>e.preventDefault()} onClick={() => { setShowCatalog(true); setSearchOpen(false); setQ(p.name); window.setTimeout(() => document.getElementById("products")?.scrollIntoView({behavior:"smooth"}), 40); }}><span><b>{p.name}</b><small>{p.category || "Product"}</small></span><span aria-hidden="true">↗</span></button>)}
+            {!sectionMatches.length && !products.some(p => [p.name,p.category,p.description,p.slug,...(p.offers||[])].join(" ").toLowerCase().includes(normalizedQuery)) && <div className="searchEmpty">No matching page, section or product yet.</div>}
+            <button type="button" className="searchAll" onClick={() => runSearch()}>Search all results →</button>
+          </div>}
+        </div>
         <button className="icon accountButton" onClick={() => setAccountOpen(true)} aria-label="Open account">{account ? "My account" : "Sign in"}</button><button className="cart" onClick={() => setCheckout(true)} aria-label="Open cart"><ShoppingCart /><span>{cart.reduce((sum, i) => sum + (Number(i.qty) || 0), 0)}</span></button>
       </nav>
     </header>
@@ -254,6 +308,28 @@ function App() {
       <div className="heroCard"><ShieldCheck size={42} /><h3>Trusted checkout</h3><p>Secure payments, order tracking and automated confirmations.</p></div>
     </section>
     <div className="features"><div><Truck />Fast delivery</div><div><CreditCard />Secure payments</div><div><MessageCircle />WhatsApp-ready support</div></div>
+    <section className="ddcsAbout" id="ddcs-about">
+      <div className="sectionHead"><div><p className="eyebrow">ABOUT OUR STUDIO</p><h2>Digital help, made simpler</h2><p>Deepak Digital Computer Studio supports everyday digital needs, online form guidance, computer services and customer assistance.</p></div></div>
+      <div className="aboutGrid">
+        <article className="aboutCard"><span className="aboutIcon">◎</span><h3>Who we are</h3><p>A local digital service studio helping customers navigate online services and computer-related needs.</p></article>
+        <article className="aboutCard"><span className="aboutIcon">✦</span><h3>Our aim</h3><p>Make digital tasks easier to understand with clear guidance, practical support and transparent next steps.</p></article>
+        <article className="aboutCard"><span className="aboutIcon">✓</span><h3>Our promise</h3><p>Respect customer information, explain service requirements and confirm charges before a request proceeds.</p></article>
+      </div>
+    </section>
+    <section className="ddcsTrust" id="ddcs-trust">
+      <div className="sectionHead"><div><p className="eyebrow">FEATURES & TRUST</p><h2>Support you can understand</h2><p>Clear information, convenient contact options and real catalogue statistics.</p></div></div>
+      <div className="trustGrid">
+        <article className="trustCard"><ShieldCheck /><h3>Transparent service</h3><p>Check the details and ask us to confirm the current requirements and charges.</p></article>
+        <article className="trustCard"><MessageCircle /><h3>Direct assistance</h3><p>Use the enquiry form, phone or WhatsApp to tell us what you need.</p></article>
+        <article className="trustCard"><Eye /><h3>Real catalogue activity</h3><p>Views, enquiries and ratings are displayed only when the system has recorded them.</p></article>
+      </div>
+      <div className="trustStats" aria-label="DDCS site statistics">
+        <div><strong>{Number(siteStats.totalVisits||0).toLocaleString("en-IN")}</strong><span>Site visits</span></div>
+        <div><strong>{Number(siteStats.products||products.length||0).toLocaleString("en-IN")}</strong><span>Products & services</span></div>
+        <div><strong>{Number(siteStats.totalReviews||0).toLocaleString("en-IN")}</strong><span>Recorded reviews</span></div>
+        <div><strong>{Number(siteStats.totalReviews||0) ? Number(siteStats.averageRating||0).toFixed(1)+" / 5" : "Not rated"}</strong><span>Average rating</span></div>
+      </div>
+    </section>
     {selectedProduct ? <main className="serviceDetail" id="service-detail">
       <button className="backToProducts" onClick={()=>{setSelectedProduct(null);window.history.replaceState(null,"",window.location.pathname);}}><ArrowLeft size={18}/> Back to services</button>
       <div className="detailLayout">
@@ -269,8 +345,13 @@ function App() {
       </div>
       <section className="detailBelow"><div><h2>Service details and information</h2><p>{selectedProduct.description||"Our team can help you understand the process and prepare the information needed before submitting a request."}</p><h3>How it works</h3><ol><li>Review the service information and document checklist.</li><li>Submit the enquiry form with your contact details.</li><li>Our team contacts you to confirm charges and next steps.</li></ol><h3>Before you apply</h3><p>Requirements and official approval timelines can vary. Confirm current requirements with the relevant government portal or authorised service centre. An enquiry does not guarantee issuance of a government certificate.</p></div>
       <form id="service-enquiry" className="enquiryCard" onSubmit={submitInquiry}><h2>Request this service</h2><p>Leave your details for a follow-up.</p><label>Your name<input required minLength="2" maxLength="100" value={inquiryForm.name} onChange={e=>setInquiryForm({...inquiryForm,name:e.target.value})} placeholder="Full name"/></label><label>Mobile / contact number<input required maxLength="25" inputMode="tel" value={inquiryForm.phone} onChange={e=>setInquiryForm({...inquiryForm,phone:e.target.value})} placeholder="Contact number"/></label><label>What do you need?<textarea maxLength="1000" value={inquiryForm.note} onChange={e=>setInquiryForm({...inquiryForm,note:e.target.value})} placeholder="Optional questions"/></label><button className="pay" disabled={inquiryBusy}>{inquiryBusy?"Submitting…":"Submit enquiry"}</button></form></section>
-    </main> : <main id="products">
-      <div className="sectionHead"><div><p className="eyebrow">SHOP & DIGITAL SERVICES</p><h2>Featured products and online services</h2></div><span>{filteredProducts.length} items</span></div>
+    </main> : showCatalog ? <main id="products">
+      <div className="sectionHead catalogHeading"><div><p className="eyebrow">SHOP & DIGITAL SERVICES</p><h2>Products and online services</h2><p>Search by name, keyword, category, description or offer.</p></div><span>{filteredProducts.length} results</span></div>
+      <div className="catalogControls">
+        <label>Category <select value={categoryFilter} onChange={e=>setCategoryFilter(e.target.value)}><option value="all">All categories</option>{categories.map(category=><option key={category} value={category}>{category}</option>)}</select></label>
+        <label>Sort by <select value={sortBy} onChange={e=>setSortBy(e.target.value)}><option value="featured">Featured</option><option value="popular">Most viewed</option><option value="rating">Top rating</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></label>
+        <button type="button" className="catalogReset" onClick={()=>{setQ("");setCategoryFilter("all");setSortBy("featured");}}>Clear filters</button>
+      </div>
       {productsError&&<p role="status">We couldn’t load the catalogue right now. Please try again shortly.</p>}
       {!productsError&&products.length===0&&<p>Products and services will appear here when the catalog is available.</p>}
       <section className="homeFeatured" id="home-products"><div className="sectionHead"><div><p className="eyebrow">QUICK PICKS</p><h2>Featured services</h2><p>Popular services at a glance. Explore all products below.</p></div><a className="slideCta" href="#products">View all products →</a></div><div className="grid homeProductGrid">{filteredProducts.slice(0,4).map(p=><article className="card serviceCard" key={"featured-"+(p._id||p.name)}><div className="featuredIcon">✦</div><small>{p.category||"Digital Service"}</small><h3>{p.name||"Product"}</h3><p className="desc">{p.description||"Learn about this service, required documents and how to apply."}</p><div className="cardPrice">{p.service?<span className="servicePrice">Contact for charges</span>:money(p.price)}</div><div className="cardActions"><button onClick={()=>openProduct(p)}>View details</button><button className="secondaryAction" onClick={()=>{window.open("https://forms.gle/RVsTMhm8KeYZneLN9","_blank","noopener,noreferrer")}}>Apply online</button></div></article>)}</div></section><div className="grid">{filteredProducts.map(p=>{
