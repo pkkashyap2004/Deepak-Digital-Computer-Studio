@@ -258,7 +258,7 @@ function App() {
   }).sort((a,b) => {
     if (sortBy === "price-low") return Number(a.price || 0) - Number(b.price || 0);
     if (sortBy === "price-high") return Number(b.price || 0) - Number(a.price || 0);
-    if (sortBy === "rating") return Number(b.rating || 0) - Number(a.rating || 0);
+    if (sortBy === "rating") return (Number(b.reviewCount) > 0 ? Number(b.rating || 0) : 0) - (Number(a.reviewCount) > 0 ? Number(a.rating || 0) : 0);
     if (sortBy === "popular") return Number(b.views || 0) - Number(a.views || 0);
     return Number(Boolean(b.featured)) - Number(Boolean(a.featured));
   });
