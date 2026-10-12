@@ -258,7 +258,7 @@ function App() {
   }).sort((a,b) => {
     if (sortBy === "price-low") return Number(a.price || 0) - Number(b.price || 0);
     if (sortBy === "price-high") return Number(b.price || 0) - Number(a.price || 0);
-    if (sortBy === "rating") return Number(b.rating || 0) - Number(a.rating || 0);
+    if (sortBy === "rating") return (Number(b.reviewCount) > 0 ? Number(b.rating || 0) : 0) - (Number(a.reviewCount) > 0 ? Number(a.rating || 0) : 0);
     if (sortBy === "popular") return Number(b.views || 0) - Number(a.views || 0);
     return Number(Boolean(b.featured)) - Number(Boolean(a.featured));
   });
@@ -278,10 +278,11 @@ function App() {
     const value = String(term || "").trim().toLowerCase();
     setSearchOpen(false);
     if (!value) { setShowCatalog(true); window.setTimeout(() => document.getElementById("products")?.scrollIntoView({ behavior: "smooth" }), 40); return; }
-    const section = sectionTargets.find(item => (item.title + " " + item.keywords).toLowerCase().includes(value));
-    const productMatch = products.some(p => [p.name,p.category,p.description,p.slug,...(p.offers||[])].join(" ").toLowerCase().includes(value));
+    const section = sectionTargets.find(item => matchesSearch(item.title + " " + item.keywords, value));
+    const productMatch = products.some(p => matchesSearch([p.name,p.category,p.description,p.slug,...(p.offers||[])].join(" "), value));
     if (section && section.id !== "products" && !productMatch) {
-      if (section.id === "home") setShowCatalog(false);
+      setShowCatalog(false);
+      setSelectedProduct(null);
       window.setTimeout(() => document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
       return;
     }
@@ -447,7 +448,7 @@ function App() {
       {account ? <><h2>Welcome, {account.name}</h2><p>{account.email}</p><p>Your account is ready. Profile and address management will be expanded in the next iteration.</p><button onClick={signOut}>Sign out</button></> : <>
         <h2>{authMode === "register" ? "Create account" : authMode === "otp" ? "Sign in with email code" : authMode === "otp-verify" ? "Verify your email" : "Sign in"}</h2>
         <form onSubmit={authMode.startsWith("otp") ? submitOtp : submitAuth} className="accountForm">
-          {(authMode === "register" || authMode.startsWith("otp")) && <input required={authMode === "register" || authMode.startsWith("otp")} maxLength="100" value={authForm.name} onChange={e => setAuthForm({...authForm,name:e.target.value})} placeholder={authMode.startsWith("otp") ? "Full name (new accounts only)" : "Full name"} aria-label="Full name" /> }
+          {(authMode === "register" || authMode.startsWith("otp")) && <input required={authMode === "register"} maxLength="100" value={authForm.name} onChange={e => setAuthForm({...authForm,name:e.target.value})} placeholder={authMode.startsWith("otp") ? "Full name (new accounts only)" : "Full name"} aria-label="Full name" /> }
           <input required type="email" autoComplete="email" value={authForm.email} onChange={e => setAuthForm({...authForm,email:e.target.value})} placeholder="Email address" aria-label="Email address" />
           {!authMode.startsWith("otp") && <input required minLength={authMode === "register" ? 8 : 1} maxLength="128" type="password" autoComplete={authMode === "register" ? "new-password" : "current-password"} value={authForm.password} onChange={e => setAuthForm({...authForm,password:e.target.value})} placeholder="Password (at least 8 characters)" aria-label="Password" /> }
           {authMode === "otp-verify" && <input required inputMode="numeric" pattern="[0-9]{6}" minLength="6" maxLength="6" autoComplete="one-time-code" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, "").slice(0,6))} placeholder="6-digit email code" aria-label="Six-digit email verification code" />}
