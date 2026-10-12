@@ -228,3 +228,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .otpAlternative{border:1px solid #dfe4eb;border-radius:10px;background:#fff;padding:10px 12px;color:#172033}
 .reviewStars span{font-size:13px;color:#64748b;letter-spacing:0}
 @media(max-width:680px){.ddcsFinalCta{margin:18px 4% 26px;padding:22px;display:grid}.ctaActions{display:grid;grid-template-columns:1fr}.ctaActions .slideCta{text-align:center}}
+
+
+/* DDCS image gallery slider: existing palette and section layout preserved */
+.ddcsGallerySlider{position:relative;max-width:100%;margin:20px auto 0;border:1px solid #dbe5f2;border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 12px 32px #0b2c6e12}
+.ddcsGalleryTrack{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-x:contain;scrollbar-width:none}
+.ddcsGalleryTrack::-webkit-scrollbar{display:none}
+.ddcsGallerySlide{position:relative;flex:0 0 100%;min-width:0;scroll-snap-align:start;overflow:hidden;background:#f7f8fb}
+.ddcsGallerySlide img{display:block;width:100%;height:clamp(260px,58vw,620px);object-fit:contain;background:#f7f8fb;transition:transform .45s ease}
+.ddcsGallerySlide:hover img{transform:scale(1.015)}
+.ddcsPortraitSlide img{height:clamp(260px,42vw,500px)}
+.gallerySlideCaption{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;background:#fff;color:#172033;border-top:1px solid #e2e8f0}
+.gallerySlideCaption b{font-size:clamp(15px,2vw,20px)}
+.gallerySlideCaption span{font-size:13px;color:#526070;text-align:right}
+.ddcsGalleryControls{display:flex;align-items:center;justify-content:center;gap:18px;padding:12px;background:#111827}
+.ddcsGalleryControls>button{width:38px;height:38px;border:1px solid #ffffff45;border-radius:50%;background:#ffffff12;color:#fff;font-size:26px;line-height:1;cursor:pointer}
+.gallerySlideDots{display:flex;align-items:center;gap:9px}
+.gallerySlideDots button{width:9px;height:9px;padding:0;border:0;border-radius:99px;background:#ffffff65;cursor:pointer}
+.gallerySlideDots button:focus-visible,.ddcsGalleryControls button:focus-visible{outline:3px solid #ff8a5b;outline-offset:3px}
+@media(max-width:600px){.ddcsGallerySlide img{height:clamp(250px,95vw,460px)}.gallerySlideCaption{align-items:flex-start;flex-direction:column;gap:4px;padding:12px}.gallerySlideCaption span{text-align:left;font-size:12px}.ddcsGalleryControls{gap:14px}}
+@media(prefers-reduced-motion:reduce){.ddcsGalleryTrack{scroll-behavior:auto}.ddcsGallerySlide img{transition:none}}
