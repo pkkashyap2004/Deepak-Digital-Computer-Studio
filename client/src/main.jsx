@@ -41,6 +41,7 @@ class ErrorBoundary extends Component {
 
 function App() {
   const [products, setProducts] = useState([]);
+  const starterProducts = [["Income Certificate Assistance","Government Services","Guidance on the Uttar Pradesh income certificate application process and supporting documents.",60,"Supporting document checklist"],["Caste Certificate Assistance","Government Services","Guidance on the Uttar Pradesh caste certificate application process and official application channel.",60,"Supporting document checklist"],["Domicile Certificate","Government Services","Guidance on the Uttar Pradesh domicile certificate application process and supporting documents.",80,"Supporting document checklist"],["PAN Card Application Assistance","Identity Services","Help understanding PAN application steps and required documents.",100,"Document checklist"],["Voter ID Assistance","Identity Services","Guidance for voter registration and correction requests through official channels.",80,"Application guidance"],["Ayushman Card Assistance","Government Services","Guidance on eligibility checks and official Ayushman card application steps.",50,"Eligibility guidance"],["Ration Card Assistance","Government Services","Support with understanding ration card application and correction steps.",100,"Document checklist"],["Birth Certificate Guidance","Government Services","Information about the appropriate local authority and supporting records.",100,"Application guidance"],["Income Certificate Renewal Help","Government Services","Guidance for renewal and checking the appropriate application channel.",50,"Renewal checklist"],["Scholarship Form Assistance","Student Services","Help understanding scholarship forms, eligibility details and required documents.",100,"Form checklist"],["Job Application Assistance","Career Services","Support with online job application forms and document preparation.",100,"Application support"],["Exam Form Assistance","Student Services","Guidance for online examination forms and common document requirements.",80,"Form checklist"],["Online Form Filling","Digital Services","Assistance with online forms and accurate document entry.",50,"Form filling support"],["Printing & Scanning Service","Computer Services","Document printing, scanning and digital file preparation.",10,"Print and scan service"],["Resume & Typing Service","Computer Services","Typing and resume formatting support for study and job applications.",100,"Formatting support"]].map((p,i)=>({ _id:"ddcs-starter-"+(i+1), slug:"ddcs-starter-"+(i+1), name:p[0], category:p[1], description:p[2], price:p[3], views:0, inquiries:0, reviewCount:0, rating:0, offers:[p[4]], service:false, starterCatalog:true }));
   const [cart, setCart] = useState(readCart);
   const [q, setQ] = useState("");
   const [menu, setMenu] = useState(false);
@@ -68,7 +69,9 @@ function App() {
         if (!response.ok) throw new Error("Products API returned " + response.status);
         const data = await response.json();
         const rawList = Array.isArray(data) ? data : (Array.isArray(data.products) ? data.products : []);
-        const list = rawList.map(item => /domicil(e)? certificate/i.test(String(item.name||"")) ? {...item, name:"Domicile Certificate", price:80, service:false, offers:["Supporting document checklist","Guidance on the Uttar Pradesh application process"]} : item);
+        const normalized = rawList.map(item => /domicil(e)? certificate/i.test(String(item.name||"")) ? {...item, name:"Domicile Certificate", price:80, service:false, offers:["Supporting document checklist","Guidance on the Uttar Pradesh application process"]} : item);
+        const names = new Set(normalized.map(item=>String(item.name||"").trim().toLowerCase()));
+        const list = [...normalized, ...starterProducts.filter(item=>!names.has(item.name.toLowerCase()))];
         if (active) {
           setProducts(list);
           setProductsError(false);
@@ -217,7 +220,7 @@ function App() {
       <nav>
         <a className="brandMark" href="#home" aria-label="Deepak Digital Computer Studio home"><span className="brandIcon"><span className="pixelGrid"><i></i><i></i><i></i><i></i><i></i><i></i></span><b>D</b><em></em></span><span className="brandWords"><strong><span>Deepak</span> <i>Digital</i></strong><small>Computer Studio</small></span></a>
         <button className="icon" onClick={() => setMenu(!menu)} aria-label="Toggle menu">{menu ? <X /> : <Menu />}</button>
-        <div className={"links " + (menu ? "open" : "")}><a href="#home">Home</a><a href="#products">Products</a><a href="#products">Deals</a><a href="#support">Support</a></div>
+        <div className={"links " + (menu ? "open" : "")}><a href="#home">Home</a><a href="#home-products">Featured</a><a href="#products">Store / Products</a><a href="#ddcs-gallery">Gallery</a><a href="#support">Support</a></div>
         <div className="search"><Search size={18} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Search products..." aria-label="Search products" /></div>
         <button className="icon accountButton" onClick={() => setAccountOpen(true)} aria-label="Open account">{account ? "My account" : "Sign in"}</button><button className="cart" onClick={() => setCheckout(true)} aria-label="Open cart"><ShoppingCart /><span>{cart.reduce((sum, i) => sum + (Number(i.qty) || 0), 0)}</span></button>
       </nav>
@@ -259,7 +262,7 @@ function App() {
       <div className="sectionHead"><div><p className="eyebrow">SHOP & DIGITAL SERVICES</p><h2>Featured products and online services</h2></div><span>{filteredProducts.length} items</span></div>
       {productsError&&<p role="status">We couldn’t load the catalogue right now. Please try again shortly.</p>}
       {!productsError&&products.length===0&&<p>Products and services will appear here when the catalog is available.</p>}
-      <div className="grid">{filteredProducts.map(p=>{
+      <section className="homeFeatured" id="home-products"><div className="sectionHead"><div><p className="eyebrow">QUICK PICKS</p><h2>Featured services</h2><p>Popular services at a glance. Explore all 15+ products in the Store section.</p></div><a className="slideCta" href="#products">View all products →</a></div><div className="grid homeProductGrid">{filteredProducts.slice(0,4).map(p=><article className="card serviceCard" key={"featured-"+(p._id||p.name)}><div className="featuredIcon">✦</div><small>{p.category||"Digital Service"}</small><h3>{p.name||"Product"}</h3><p className="desc">{p.description||"Learn about this service, required documents and how to apply."}</p><div className="cardPrice">{p.service?<span className="servicePrice">Contact for charges</span>:money(p.price)}</div><div className="cardActions"><button onClick={()=>openProduct(p)}>View details</button><button className="secondaryAction" onClick={()=>{window.open("https://forms.gle/RVsTMhm8KeYZneLN9","_blank","noopener,noreferrer")}}>Apply online</button></div></article>)}</div></section><div className="grid">{filteredProducts.map(p=>{
         const discount=Number(p.discountPercent)||(Number(p.compareAt)>Number(p.price)&&Number(p.compareAt)>0?Math.round((1-Number(p.price)/Number(p.compareAt))*100):0);
         const oldPrice=Number(p.compareAt)>Number(p.price)?Number(p.compareAt):(discount>0?Number(p.price)/(1-discount/100):0);
         return <article className="card serviceCard" key={p._id||p.name}>
@@ -274,7 +277,7 @@ function App() {
       })}</div>
     </main>}
 
-    <section className="ddcsAdditions" id="ddcs-gallery">
+    <section className="ddcsAdditions" id="ddcs-gallery"><div className="sectionHead"><div><p className="eyebrow">DEALS & PROMOTIONS</p><h2>Offers Gallery</h2><p>Explore our current service offers and studio promotions.</p></div></div>
       <div className="sectionHead"><div><p className="eyebrow">OUR STUDIO</p><h2>Deepak Digital Computer Studio</h2></div></div>
       <div className="studioPromo"><div><span className="eyebrow">आपकी सेवा, हमारा विश्वास</span><h2>आपका अपना डिजिटल सेवा केंद्र</h2><p>सरकारी ऑनलाइन फॉर्म, जॉब एप्लीकेशन, प्रमाणपत्र सहायता, प्रिंटिंग, स्कैनिंग और अन्य डिजिटल सेवाएँ।</p><a className="slideCta" href="https://forms.gle/RVsTMhm8KeYZneLN9" target="_blank" rel="noreferrer">Online Form भरें →</a><a className="slideCta" href="#ddcs-contact">आज ही संपर्क करें →</a></div><div className="promoOffer"><b>3 in 1 फॉर्म ऑनलाइन</b><strong>₹220</strong><span>आय प्रमाण पत्र • जाति प्रमाण पत्र • निवास प्रमाण पत्र</span><small>पहले ₹300 — सीमित समय का ऑफर</small></div></div>
       <div className="ddcsGallery"><article><div className="galleryPoster posterOne"><b>DEEPAK DIGITAL</b><strong>COMPUTER STUDIO</strong><span>आपका अपना डिजिटल सेवा केंद्र</span><p>Online Forms • Printing • Computer Services</p></div><h3>हमारी डिजिटल सेवाएँ</h3></article><article><div className="galleryPoster posterTwo"><b>3 in 1</b><strong>फॉर्म ऑनलाइन</strong><span>₹220/-</span><p>Income • Caste • Domicile Certificate</p></div><h3>स्पेशल ऑफर</h3></article></div>
