@@ -22,10 +22,10 @@ app.post("/api/auth/otp/request",async(req,res)=>{
     const email=String(req.body?.email||"").trim().toLowerCase();
     const suppliedName=String(req.body?.name||"").trim();
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254)return res.status(400).json({message:"Enter a valid email address."});
-    if(suppliedName.length<2||suppliedName.length>100)return res.status(400).json({message:"Enter your name (2–100 characters) to continue with email OTP."});
+    if(suppliedName.length>100)return res.status(400).json({message:"Name must be 100 characters or fewer."});
     await db();
     const user=await User.findOne({email});
-    
+    if(!user&&suppliedName.length<2)return res.status(400).json({message:"Enter your name to create a new account with email OTP."});
     const now=new Date();
     const prior=await EmailOtp.findOne({email});
     if(prior&&now.getTime()-new Date(prior.lastSentAt).getTime()<60000)return res.status(429).json({message:"Please wait 60 seconds before requesting another code."});
@@ -55,7 +55,7 @@ app.post("/api/auth/otp/verify",async(req,res)=>{
     await db();
     const record=await EmailOtp.findOne({email});
     if(!record||new Date(record.codeExpiresAt).getTime()<=Date.now())return res.status(400).json({message:"That code has expired or is no longer valid. Request a new code."});
-    if(Number(record.attempts||0)>=5){await EmailOtp.deleteOne({email});return res.status(429).json({message:"Too many incorrect attempts. Request a new code."});}
+    if(Number(record.attempts||0)>=5){record.codeHash="";record.codeExpiresAt=new Date(0);await record.save();return res.status(429).json({message:"Too many incorrect attempts. Request a new code."});}
     const secret=process.env.OTP_SECRET||process.env.JWT_SECRET;
     const expected=crypto.createHash("sha256").update(email+":"+code+":"+secret).digest("hex");
     const actualBuffer=Buffer.from(String(record.codeHash||""),"hex");
@@ -63,12 +63,15 @@ app.post("/api/auth/otp/verify",async(req,res)=>{
     const matches=actualBuffer.length===expectedBuffer.length&&crypto.timingSafeEqual(actualBuffer,expectedBuffer);
     if(!matches){
       record.attempts=Number(record.attempts||0)+1;
-      if(record.attempts>=5)await EmailOtp.deleteOne({email});else await record.save();
+      if(record.attempts>=5){record.codeHash="";record.codeExpiresAt=new Date(0);}await record.save();
       return res.status(400).json({message:record.attempts>=5?"Too many incorrect attempts. Request a new code.":"Incorrect code. Please check the email and try again."});
     }
     let user=await User.findOne({email});
     if(!user)user=await User.create({name:String(record.name||"").trim()||"DDCS Customer",email,passwordHash:null,role:"customer"});
-    await EmailOtp.deleteOne({email});
+    record.codeHash="";
+    record.codeExpiresAt=new Date(0);
+    record.attempts=0;
+    await record.save();
     return res.json({token:token(user),user:{name:user.name,email:user.email,role:user.role}});
   }catch(e){console.error("OTP verification failed:",e.name,e.message);return res.status(500).json({message:"Could not verify this code right now. Please try again."})}
 });

@@ -193,6 +193,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .ddcsAbout,.ddcsTrust{padding:40px 5%}
 }
 @media(max-width:680px){
+  .searchShell{display:flex!important}
   nav{height:auto;min-height:68px;flex-wrap:wrap;gap:10px;padding:10px 4%;position:sticky}
   .logo,.brandWords strong{font-size:20px}
   .icon{display:inline-flex;align-items:center;justify-content:center}
