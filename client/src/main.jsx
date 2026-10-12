@@ -94,6 +94,27 @@ function App() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    async function loadPublicStats() {
+      try {
+        const response = await fetch(API + "/public/stats");
+        if (response.ok && active) setSiteStats(await response.json());
+      } catch (error) { console.warn("Public statistics unavailable:", error); }
+    }
+    loadPublicStats();
+    try {
+      if (!window.sessionStorage.getItem("ddcs_visit_counted")) {
+        window.sessionStorage.setItem("ddcs_visit_counted", "1");
+        fetch(API + "/metrics/visit", { method: "POST" })
+          .then(response => response.ok ? response.json() : null)
+          .then(data => { if (active && data) setSiteStats(current => ({ ...current, totalVisits: Number(data.totalVisits || current.totalVisits) })); })
+          .catch(error => console.warn("Visit counter unavailable:", error));
+      }
+    } catch (error) { console.warn("Session storage unavailable for visit counter:", error); }
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
     try {
       window.localStorage.setItem("cart", JSON.stringify(cart));
     } catch (error) {
