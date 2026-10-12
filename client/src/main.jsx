@@ -123,22 +123,29 @@ function App() {
     };
     const scriptUrl = "https://www.paypal.com/sdk/js?client-id=BAASv9QQOifkaqyK1MaN7OjNUwi9iTpiC4oIUeYuQnAq-ec96XSjxEtpS6UcmgB___h1vaqA0ihiLGonmg&components=hosted-buttons&disable-funding=venmo&currency=USD";
     let script = document.querySelector('script[data-ddcs-paypal-sdk="true"]');
-    if (!script) {
+    const showLoadError = () => {
+      const container = document.getElementById(containerId);
+      if (container) container.textContent = "PayPal checkout could not load. Please refresh and try again.";
+    };
+    if (window.paypal?.HostedButtons) {
+      renderHostedButton();
+    } else if (!script) {
       script = document.createElement("script");
       script.src = scriptUrl;
       script.async = true;
       script.crossOrigin = "anonymous";
       script.dataset.ddcsPaypalSdk = "true";
-      script.onload = renderHostedButton;
-      script.onerror = () => {
-        const container = document.getElementById(containerId);
-        if (container) container.textContent = "PayPal checkout could not load. Please try again later.";
-      };
+      script.addEventListener("load", () => {
+        script.dataset.loaded = "true";
+        renderHostedButton();
+      }, { once: true });
+      script.addEventListener("error", showLoadError, { once: true });
       document.body.appendChild(script);
-    } else if (window.paypal?.HostedButtons) {
-      renderHostedButton();
+    } else if (script.dataset.loaded === "true") {
+      showLoadError();
     } else {
       script.addEventListener("load", renderHostedButton, { once: true });
+      script.addEventListener("error", showLoadError, { once: true });
     }
     return () => { cancelled = true; };
   }, [checkout]);
@@ -218,49 +225,13 @@ function App() {
     finally { setContactBusy(false); }
   }
 
-  async function pay() {
-    if (paying || cart.length === 0) return;
-    if (cart.some(item => item.service)) { setMessage("Government service charges must be confirmed first. Open the service details and submit an enquiry before checkout."); return; }
-    setPaying(true);
-    try {
-      const shipping = { name: "Guest Customer", email: "customer@example.com", phone: "", address: "India" };
-      const paymentResponse = await fetch(API + "/payments/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: total })
-      });
-      if (!paymentResponse.ok) throw new Error("Payment setup failed");
-      const payment = await paymentResponse.json();
-      const orderResponse = await fetch(API + "/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: cart.map(i => ({ productId: i._id, name: i.name, price: i.price, qty: i.qty })),
-          total,
-          paymentMethod: payment.demo ? "demo" : "razorpay",
-          shipping
-        })
-      });
-      const order = await orderResponse.json();
-      if (!orderResponse.ok) throw new Error(order.message || "Order could not be placed");
-      setCart([]);
-      setCheckout(false);
-      setMessage("Order placed successfully: " + (order._id || order.orderId || ""));
-    } catch (error) {
-      console.error("Checkout failed:", error);
-      setMessage(error.message || "Checkout failed. Please try again.");
-    } finally {
-      setPaying(false);
-    }
-  }
-
   return <>
     <header>
       <div className="top">🚀 Free delivery on orders over ₹999 • Secure checkout</div>
       <nav>
         <a className="brandMark" href="#home" aria-label="Deepak Digital Computer Studio home"><span className="brandIcon"><span className="pixelGrid"><i></i><i></i><i></i><i></i><i></i><i></i></span><b>D</b><em></em></span><span className="brandWords"><strong><span>Deepak</span> <i>Digital</i></strong><small>Computer Studio</small></span></a>
         <button className="icon" onClick={() => setMenu(!menu)} aria-label="Toggle menu">{menu ? <X /> : <Menu />}</button>
-        <div className={"links " + (menu ? "open" : "")}><a href="#home">Home</a><a href="#home-products">Featured</a><a href="#products">Store / Products</a><a href="#ddcs-gallery">Gallery</a><a href="#support">Support</a></div>
+        <div className={"links " + (menu ? "open" : "")}><a href="#home">Home</a><a href="#products">Products</a><a href="#ddcs-gallery">Gallery</a><a href="#support">Support</a></div>
         <div className="search"><Search size={18} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Search products..." aria-label="Search products" /></div>
         <button className="icon accountButton" onClick={() => setAccountOpen(true)} aria-label="Open account">{account ? "My account" : "Sign in"}</button><button className="cart" onClick={() => setCheckout(true)} aria-label="Open cart"><ShoppingCart /><span>{cart.reduce((sum, i) => sum + (Number(i.qty) || 0), 0)}</span></button>
       </nav>
@@ -293,7 +264,7 @@ function App() {
           <p className="detailDescription">{selectedProduct.description||"Professional assistance from Deepak Digital Computer Studio. Contact our team to confirm eligibility, required documents, service charges and expected timelines."}</p>
           <div className="detailStats"><span><Eye size={17}/> {Number(selectedProduct.views||0).toLocaleString("en-IN")} views</span><span><Users size={17}/> {Number(selectedProduct.inquiries||0).toLocaleString("en-IN")} enquiries</span></div>
           <div className="offerPanel"><b>Available offers</b>{(selectedProduct.offers?.length?selectedProduct.offers:["Get assistance with application steps and document checklist","Contact our service desk to confirm current service charges","Support with next steps and application guidance"]).map((offer,i)=><p key={i}>✓ {offer}</p>)}</div>
-          <div className="detailActions"><button onClick={()=>{add(selectedProduct);setMessage("Added to cart: "+selectedProduct.name)}}><ShoppingCart size={18}/> Add to cart</button><button className="secondaryAction" onClick={()=>document.getElementById("service-enquiry")?.scrollIntoView({behavior:"smooth",block:"center"})}><FileText size={18}/> Online form / Enquiry</button></div>
+          <div className="detailActions"><button onClick={()=>{add(selectedProduct);setCheckout(true);setMessage("Selected "+selectedProduct.name+". Complete payment using the PayPal button in checkout.")}}><CreditCard size={18}/> Buy with PayPal</button><button className="secondaryAction" onClick={()=>document.getElementById("service-enquiry")?.scrollIntoView({behavior:"smooth",block:"center"})}><FileText size={18}/> Online form / Enquiry</button></div>
         </div>
       </div>
       <section className="detailBelow"><div><h2>Service details and information</h2><p>{selectedProduct.description||"Our team can help you understand the process and prepare the information needed before submitting a request."}</p><h3>How it works</h3><ol><li>Review the service information and document checklist.</li><li>Submit the enquiry form with your contact details.</li><li>Our team contacts you to confirm charges and next steps.</li></ol><h3>Before you apply</h3><p>Requirements and official approval timelines can vary. Confirm current requirements with the relevant government portal or authorised service centre. An enquiry does not guarantee issuance of a government certificate.</p></div>
@@ -302,7 +273,7 @@ function App() {
       <div className="sectionHead"><div><p className="eyebrow">SHOP & DIGITAL SERVICES</p><h2>Featured products and online services</h2></div><span>{filteredProducts.length} items</span></div>
       {productsError&&<p role="status">We couldn’t load the catalogue right now. Please try again shortly.</p>}
       {!productsError&&products.length===0&&<p>Products and services will appear here when the catalog is available.</p>}
-      <section className="homeFeatured" id="home-products"><div className="sectionHead"><div><p className="eyebrow">QUICK PICKS</p><h2>Featured services</h2><p>Popular services at a glance. Explore all 15+ products in the Store section.</p></div><a className="slideCta" href="#products">View all products →</a></div><div className="grid homeProductGrid">{filteredProducts.slice(0,4).map(p=><article className="card serviceCard" key={"featured-"+(p._id||p.name)}><div className="featuredIcon">✦</div><small>{p.category||"Digital Service"}</small><h3>{p.name||"Product"}</h3><p className="desc">{p.description||"Learn about this service, required documents and how to apply."}</p><div className="cardPrice">{p.service?<span className="servicePrice">Contact for charges</span>:money(p.price)}</div><div className="cardActions"><button onClick={()=>openProduct(p)}>View details</button><button className="secondaryAction" onClick={()=>{window.open("https://forms.gle/RVsTMhm8KeYZneLN9","_blank","noopener,noreferrer")}}>Apply online</button></div></article>)}</div></section><div className="grid">{filteredProducts.map(p=>{
+      <section className="homeFeatured" id="home-products"><div className="sectionHead"><div><p className="eyebrow">QUICK PICKS</p><h2>Featured services</h2><p>Popular services at a glance. Explore all products below.</p></div><a className="slideCta" href="#products">View all products →</a></div><div className="grid homeProductGrid">{filteredProducts.slice(0,4).map(p=><article className="card serviceCard" key={"featured-"+(p._id||p.name)}><div className="featuredIcon">✦</div><small>{p.category||"Digital Service"}</small><h3>{p.name||"Product"}</h3><p className="desc">{p.description||"Learn about this service, required documents and how to apply."}</p><div className="cardPrice">{p.service?<span className="servicePrice">Contact for charges</span>:money(p.price)}</div><div className="cardActions"><button onClick={()=>openProduct(p)}>View details</button><button className="secondaryAction" onClick={()=>{window.open("https://forms.gle/RVsTMhm8KeYZneLN9","_blank","noopener,noreferrer")}}>Apply online</button></div></article>)}</div></section><div className="grid">{filteredProducts.map(p=>{
         const discount=Number(p.discountPercent)||(Number(p.compareAt)>Number(p.price)&&Number(p.compareAt)>0?Math.round((1-Number(p.price)/Number(p.compareAt))*100):0);
         const oldPrice=Number(p.compareAt)>Number(p.price)?Number(p.compareAt):(discount>0?Number(p.price)/(1-discount/100):0);
         return <article className="card serviceCard" key={p._id||p.name}>
@@ -312,7 +283,7 @@ function App() {
           <div className="cardPrice">{p.service ? <span className="servicePrice">Contact for charges</span> : money(p.price)} {oldPrice>Number(p.price)&&<span className="oldPrice">{money(oldPrice)}</span>}</div>
           <div className="cardStats"><span><Eye size={15}/> {Number(p.views||0).toLocaleString("en-IN")} views</span><span><Users size={15}/> {Number(p.inquiries||0).toLocaleString("en-IN")} enquiries</span></div>
           <div className="offerMini"><b>Offers · {(/domicil(e)? certificate/i.test(String(p.name||"")) ? 2 : (p.offers?.length||1))}</b><span>{p.offers?.[0]||"Ask us about current offers and service charges."}</span>{/domicil(e)? certificate/i.test(String(p.name||""))&&<span>✓ Uttar Pradesh application guidance</span>}</div>
-          <div className="cardActions"><button onClick={()=>{add(p);setMessage("Added to cart: "+p.name)}}><ShoppingCart size={16}/> Add to cart</button><button className="secondaryAction" onClick={()=>openProduct(p)}>Online form / Details</button></div>
+          <div className="cardActions"><button onClick={()=>{add(p);setCheckout(true);setMessage("Selected "+p.name+". Complete payment using the PayPal button in checkout.")}}><CreditCard size={16}/> Buy with PayPal</button><button className="secondaryAction" onClick={()=>openProduct(p)}>Apply/Request</button></div>
         </article>;
       })}</div>
     </main>}
@@ -344,7 +315,7 @@ function App() {
     {message && <div className="toast" role="status">{message}<button onClick={() => setMessage("")} aria-label="Dismiss message">×</button></div>}
     {checkout && <div className="overlay"><div className="modal" role="dialog" aria-modal="true" aria-label="Your cart">
       <button className="close" onClick={() => setCheckout(false)} aria-label="Close cart">×</button><h2>Your cart</h2>
-      {cart.length === 0 ? <p>Your cart is empty.</p> : <>{cart.map((i, index) => <div className="line" key={i._id || index}><span>{i.name} × {i.qty}</span><b>{money((Number(i.price) || 0) * (Number(i.qty) || 0))}</b></div>)}<hr /><div className="line"><b>Total</b><b>{money(total)}</b></div><button className="pay" onClick={pay} disabled={paying}>{paying ? "Processing…" : "Place order & pay"}</button><div className="paypalCheckout"><h3>PayPal checkout</h3><p>Use the hosted PayPal button below for the linked USD payment option.</p><div id="paypal-container-YMS9RP3FG6E78"></div><small>PayPal Hosted Button uses the payment settings configured in your PayPal account; it may not automatically charge the cart total.</small></div></>}
+      {cart.length === 0 ? <p>Your cart is empty.</p> : <>{cart.map((i, index) => <div className="line" key={i._id || index}><span>{i.name} × {i.qty}</span><b>{money((Number(i.price) || 0) * (Number(i.qty) || 0))}</b></div>)}<hr /><div className="line"><b>Total</b><b>{money(total)}</b></div><div className="paypalCheckout"><h3>PayPal checkout</h3><p>Continue through the official PayPal checkout button below.</p><div id="paypal-container-YMS9RP3FG6E78"></div><small>Important: this PayPal Hosted Button charges the amount configured in your PayPal account (USD). It does not automatically use the INR cart total shown above. Confirm the configured amount before accepting live payments.</small></div></>}
     </div></div>}
   </>;
 }
