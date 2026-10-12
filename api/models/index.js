@@ -8,6 +8,7 @@ const EmailOtp=mongoose.models.EmailOtp||mongoose.model("EmailOtp",new mongoose.
   email:{type:String,required:true,unique:true,lowercase:true,trim:true,index:true},
   name:{type:String,trim:true,maxlength:100},
   codeHash:{type:String,required:true},
+  codeExpiresAt:{type:Date,required:true},
   expiresAt:{type:Date,required:true,index:{expires:0}},
   lastSentAt:{type:Date,required:true},
   windowStartedAt:{type:Date,required:true},
