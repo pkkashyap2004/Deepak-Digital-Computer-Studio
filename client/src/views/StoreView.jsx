@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ShoppingCart, Search, Menu, X, ShieldCheck, Truck, CreditCard, MessageCircle, Eye, Star, ArrowLeft, FileText, Users } from "lucide-react";
 import { API, money, readCart } from "../models/storeModel.js";
+import { apiRequest } from "../controllers/storeController.js";
 import "./StoreView.css";
 
 function StoreView() {
@@ -29,7 +30,7 @@ function StoreView() {
     let active = true;
     async function loadProducts() {
       try {
-        const response = await fetch(API + "/products");
+        const response = await apiRequest(API + "/products");
         if (!response.ok) throw new Error("Products API returned " + response.status);
         const data = await response.json();
         const rawList = Array.isArray(data) ? data : (Array.isArray(data.products) ? data.products : []);
@@ -118,7 +119,7 @@ function StoreView() {
     event.preventDefault();
     setAccountBusy(true);
     try {
-      const response = await fetch(API + (authMode === "register" ? "/auth/register" : "/auth/login"), {
+      const response = await apiRequest(API + (authMode === "register" ? "/auth/register" : "/auth/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify({ name: authForm.name.trim(), email: authForm.email.trim().toLowerCase(), password: authForm.password })
@@ -155,7 +156,7 @@ function StoreView() {
   function openProduct(p) {
     setSelectedProduct(p);
     window.history.replaceState(null, "", "#service-" + encodeURIComponent(p.slug || p._id || "details"));
-    fetch(API + "/products/" + encodeURIComponent(p.slug || p._id) + "/view", {method:"POST"})
+    apiRequest(API + "/products/" + encodeURIComponent(p.slug || p._id) + "/view", {method:"POST"})
       .then(r => r.ok ? r.json() : null)
       .then(data => { if(data) setSelectedProduct(current => current ? {...current,views:data.views}:current); })
       .catch(error => console.warn("View count unavailable:",error));
@@ -166,7 +167,7 @@ function StoreView() {
     if(!selectedProduct)return;
     setInquiryBusy(true);
     try {
-      const response=await fetch(API+"/products/"+encodeURIComponent(selectedProduct.slug||selectedProduct._id)+"/inquiry",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(inquiryForm)});
+      const response=await apiRequest(API+"/products/"+encodeURIComponent(selectedProduct.slug||selectedProduct._id)+"/inquiry",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(inquiryForm)});
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.message||"Could not submit enquiry.");
       setSelectedProduct(current=>current?{...current,inquiries:data.inquiries}:current);
@@ -180,7 +181,7 @@ function StoreView() {
   async function submitContact(event) {
     event.preventDefault(); setContactBusy(true);
     try {
-      const response=await fetch(API+"/contact",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(contactForm)});
+      const response=await apiRequest(API+"/contact",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(contactForm)});
       const data=await response.json().catch(()=>({}));
       if(!response.ok) throw new Error(data.message||"Could not send your message.");
       setContactForm({name:"",phone:"",email:"",service:"",message:""});
