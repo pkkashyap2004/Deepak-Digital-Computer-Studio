@@ -283,7 +283,7 @@ function App() {
           <div className="cardPrice">{p.service ? <span className="servicePrice">Contact for charges</span> : money(p.price)} {oldPrice>Number(p.price)&&<span className="oldPrice">{money(oldPrice)}</span>}</div>
           <div className="cardStats"><span><Eye size={15}/> {Number(p.views||0).toLocaleString("en-IN")} views</span><span><Users size={15}/> {Number(p.inquiries||0).toLocaleString("en-IN")} enquiries</span></div>
           <div className="offerMini"><b>Offers · {(/domicil(e)? certificate/i.test(String(p.name||"")) ? 2 : (p.offers?.length||1))}</b><span>{p.offers?.[0]||"Ask us about current offers and service charges."}</span>{/domicil(e)? certificate/i.test(String(p.name||""))&&<span>✓ Uttar Pradesh application guidance</span>}</div>
-          <div className="cardActions"><button onClick={()=>{add(p);setCheckout(true);setMessage("Selected "+p.name+". Complete payment using the PayPal button in checkout.")}}><CreditCard size={16}/> Buy with PayPal</button><button className="secondaryAction" onClick={()=>openProduct(p)}>Apply/Request</button></div>
+          <div className="cardActions"><button onClick={()=>{add(p);setCheckout(true);setMessage("Selected "+p.name+". Complete payment using the PayPal button in checkout.")}}><CreditCard size={16}/> Buy with PayPal</button><button className="secondaryAction" onClick={()=>{window.open("https://forms.gle/RVsTMhm8KeYZneLN9","_blank","noopener,noreferrer")}}>Apply/Request</button></div>
         </article>;
       })}</div>
     </main>}
