@@ -4,7 +4,7 @@ const Razorpay = require("razorpay");
 const { Resend } = require("resend");
 const { db } = require("../services/database");
 const { seedDb } = require("../services/catalogSeed");
-const { sendEmail } = require("../services/emailService");
+const { sendEmail, escapeHtml } = require("../services/emailService");
 const { Product, User, Order, Coupon, Inquiry, EmailOtp, SiteMetric } = require("../models");
 const { token, auth, admin } = require("../middleware/auth");
 
@@ -38,10 +38,15 @@ app.post("/api/auth/otp/request",async(req,res)=>{
     const codeHash=crypto.createHash("sha256").update(email+":"+code+":"+secret).digest("hex");
     await EmailOtp.findOneAndUpdate({email},{$set:{email,name:user?.name||suppliedName,codeHash,codeExpiresAt:new Date(now.getTime()+10*60*1000),expiresAt:new Date(now.getTime()+2*60*60*1000),lastSentAt:now,windowStartedAt,requestsInWindow,attempts:0}}, {upsert:true,new:true,setDefaultsOnInsert:true});
     try{
-      await sendEmail(email,"Your DDCS sign-in code","<div style=\"font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px\"><h2>Deepak Digital Computer Studio</h2><p>Your one-time sign-in code is:</p><p style=\"font-size:32px;font-weight:700;letter-spacing:8px\">"+code+"</p><p>This code expires in 10 minutes. Never share it with anyone.</p><p>If you did not request this code, you can ignore this email.</p></div>");
+      const safeName=escapeHtml(user?.name||suppliedName||"there");
+      const html="<div style=\\"margin:0;padding:32px 12px;background:#f4f6f9;font-family:Arial,Helvetica,sans-serif;color:#172033\\"><div style=\\"max-width:520px;margin:auto;background:#fff;border:1px solid #e5e9f0;border-radius:16px;overflow:hidden\\"><div style=\\"padding:24px;background:#111827;color:#fff\\"><p style=\\"margin:0;color:#ff8a5b;font-size:12px;font-weight:bold;letter-spacing:2px\\">DEEPAK DIGITAL</p><h2 style=\\"margin:5px 0 0;font-size:24px\\">Computer Studio</h2></div><div style=\\"padding:28px\\"><p style=\\"color:#ff6b35;font-size:12px;font-weight:bold;letter-spacing:1px\\">EMAIL VERIFICATION</p><h1 style=\\"font-size:25px;margin:8px 0 12px\\">Your one-time code</h1><p>Hello "+safeName+", use this code to securely sign in to your DDCS account.</p><div style=\\"margin:24px 0;padding:18px;text-align:center;background:#fff1e9;border:1px solid #ffd4c2;border-radius:12px\\"><span style=\\"font-size:34px;font-weight:bold;letter-spacing:8px;color:#111827\\">"+code+"</span></div><p>This code expires in <b>10 minutes</b>. Never share it with anyone, including DDCS staff.</p><p>If you did not request this code, you can safely ignore this email.</p><hr style=\\"border:0;border-top:1px solid #e8ebf0;margin:24px 0\\"><small style=\\"color:#64748b\\">Deepak Digital Computer Studio · Secure access · Digital services · Customer support</small></div></div></div>";
+      const text="Deepak Digital Computer Studio — Email verification\\n\\nHello "+(user?.name||suppliedName||"there")+",\\n\\nYour one-time sign-in code is: "+code+"\\n\\nThis code expires in 10 minutes. Never share it with anyone. If you did not request it, ignore this email.";
+      await sendEmail(email,"Your DDCS verification code",html,text);
     }catch(mailError){
-      console.error("OTP email delivery failed:",mailError.message);
-      return res.status(502).json({message:"We could not send the email code. Check the Resend API key and verified sender domain, then try again."});
+      await EmailOtp.deleteOne({email,codeHash}).catch(()=>{});
+      console.error("OTP email delivery failed:",mailError.code||mailError.name,mailError.message);
+      const senderHint=/domain|from|sender|verified|testing/i.test(mailError.message||"");
+      return res.status(502).json({message:senderHint?"Resend rejected the sender. Verify your sending domain in Resend and set FROM_EMAIL to an address on that domain.":"Resend could not send the verification email. Check the API key, sender configuration and Resend logs."});
     }
     return res.json({success:true,message:"If the address can receive DDCS sign-in mail, a code has been sent. Check your inbox and spam folder."});
   }catch(e){console.error("OTP request failed:",e.name,e.message);return res.status(500).json({message:"Could not request an email code right now. Please try again later."})}
